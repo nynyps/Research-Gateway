@@ -1,0 +1,2058 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  PlusCircle, 
+  Layers, 
+  User, 
+  CheckCircle2, 
+  Clock, 
+  Check, 
+  HelpCircle, 
+  Eye, 
+  ShieldCheck, 
+  Radio, 
+  Activity, 
+  Waves, 
+  Search, 
+  AlertCircle, 
+  X, 
+  ChevronRight, 
+  RotateCcw, 
+  Building, 
+  Calendar, 
+  MessageSquare,
+  FileText,
+  BookmarkCheck,
+  TrendingUp,
+  Inbox,
+  Sparkles,
+  Info,
+  Paperclip,
+  Edit3,
+  Download,
+  Mail,
+  Lock,
+  LogOut,
+  Database
+} from 'lucide-react';
+import { supabase } from './supabaseClient';
+
+
+// Define initial mock data with BUs and Attachments
+const INITIAL_IDEAS = [
+  {
+    id: 'idea-1',
+    title: 'IA pour détection artéfacts en IRM',
+    problem: 'Les mouvements involontaires des patients pendant les séquences IRM longues génèrent des artéfacts cinétiques majeurs, nécessitant souvent de refaire l’acquisition, ce qui rallonge l’examen et réduit la productivité du service de radiologie.',
+    solution: 'Développer un algorithme d’apprentissage profond intégré au reconstructeur d’image Philips pour détecter et corriger en temps réel les déformations de phase causées par les micro-mouvements sans interrompre la séquence.',
+    modality: 'IRM',
+    businessUnit: 'IRM',
+    status: 'En évaluation',
+    piName: 'Dr. John Smith',
+    piHospital: 'CHU de Lyon',
+    submittedAt: '2026-06-10T14:32:00.000Z',
+    feedback: 'Première revue effectuée par le pôle Imagerie Diagnostique. Le sujet est jugé très pertinent. En attente de chiffrage par l\'équipe R&D.',
+    attachments: [
+      { name: 'mri_motion_artifacts_study.pdf', size: '2.4 MB' },
+      { name: 'clinical_workflow_impacts.xlsx', size: '1.1 MB' }
+    ]
+  },
+  {
+    id: 'idea-2',
+    title: 'Écho-guidage automatique pour accès veineux pédiatrique',
+    problem: 'La pose de voies veineuses chez les nourrissons et jeunes enfants est extrêmement délicate, entraînant de multiples tentatives douloureuses et du stress pour le jeune patient et l’équipe soignante.',
+    solution: 'Créer un logiciel d’assistance sur l’échographe portable Philips Lumify, utilisant la reconnaissance d’images pour surligner en vert fluo sur l’écran la veine optimale et guider l’aiguille en temps réel.',
+    modality: 'Échographie',
+    businessUnit: 'CI',
+    status: 'Soumis',
+    piName: 'Dr. Claire Martin',
+    piHospital: 'Hôpital Necker Enfants Malades',
+    submittedAt: '2026-06-13T09:15:00.000Z',
+    feedback: '',
+    attachments: []
+  },
+  {
+    id: 'idea-3',
+    title: 'Monitorage respiratoire non invasif en néonatalogie',
+    problem: 'Les capteurs actuels par électrodes adhésives peuvent endommager la peau extrêmement fragile des grands prématurés en unité de soins intensifs néonatals.',
+    solution: 'Utiliser une caméra haute définition Philips dotée d’une technologie de photopléthysmographie optique passive pour mesurer la fréquence respiratoire et la saturation d’oxygène à distance sans aucun contact physique.',
+    modality: 'Monitorage',
+    businessUnit: 'Monitoring',
+    status: 'Chiffrage Ressources',
+    piName: 'Dr. Alain Dubois',
+    piHospital: 'Hôpital AP-HP Paris',
+    submittedAt: '2026-06-08T16:45:00.000Z',
+    feedback: 'Intéressant. Nous évaluons le coût de développement d\'un prototype optique avec l\'équipe R&D Eindhoven.',
+    attachments: [
+      { name: 'neonatal_skin_sensitivity_report.pdf', size: '840 KB' }
+    ]
+  },
+  {
+    id: 'idea-4',
+    title: 'Superposition d\'images 3D temps réel en thérapie guidée',
+    problem: 'Lors des interventions cardiaques mini-invasives, la navigation se fait principalement sous scopie 2D, ce qui manque de repères spatiaux tridimensionnels clairs.',
+    solution: 'Développer un outil logiciel qui superpose automatiquement un modèle 3D du cœur pré-opératoire (obtenu par scanner) sur les images fluoroscopiques temps réel d’Azurion en recalant les structures osseuses.',
+    modality: 'Image-Guided Therapy',
+    businessUnit: 'IGT',
+    status: 'Arbitrage Philips',
+    piName: 'Dr. Sofia Garcia',
+    piHospital: 'CHU de Toulouse',
+    submittedAt: '2026-06-05T11:20:00.000Z',
+    feedback: 'Dossier présenté au comité d\'arbitrage trimestriel. Discussions en cours sur l\'intégration au catalogue Azurion.',
+    attachments: [
+      { name: 'azurion_3d_overlay_concept.pptx', size: '4.7 MB' }
+    ]
+  }
+];
+
+// Modalities list
+const MODALITIES = [
+  'IRM', 
+  'Échographie', 
+  'Monitorage', 
+  'Image-Guided Therapy', 
+  'Autre'
+];
+
+// Business Units list
+const BUSINESS_UNITS = [
+  'IRM', 
+  'CT', 
+  'Monitoring', 
+  'IGT', 
+  'CI'
+];
+
+// Status list
+const STATUSES = [
+  'Soumis', 
+  'En évaluation', 
+  'Chiffrage Ressources', 
+  'Arbitrage Philips', 
+  'Approuvé', 
+  'Archivé'
+];
+
+// Funnel steps for the PI timeline (excludes 'Archivé' which is a side-track)
+const FUNNEL_STEPS = [
+  { key: 'Soumis', label: 'Soumis', shortLabel: 'Soumis' },
+  { key: 'En évaluation', label: 'Évaluation', shortLabel: 'Éval.' },
+  { key: 'Chiffrage Ressources', label: 'Chiffrage', shortLabel: 'Chiffr.' },
+  { key: 'Arbitrage Philips', label: 'Arbitrage', shortLabel: 'Arbit.' },
+  { key: 'Approuvé', label: 'Approuvé', shortLabel: 'Approuvé' }
+];
+
+// Visual funnel timeline component for PI idea cards
+const FunnelTimeline = ({ currentStatus }) => {
+  const isArchived = currentStatus === 'Archivé';
+  const currentIndex = FUNNEL_STEPS.findIndex(s => s.key === currentStatus);
+
+  // Icons per step
+  const stepIcons = {
+    'Soumis': Inbox,
+    'En évaluation': Search,
+    'Chiffrage Ressources': TrendingUp,
+    'Arbitrage Philips': Layers,
+    'Approuvé': CheckCircle2
+  };
+
+  if (isArchived) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700">
+        <X className="w-3.5 h-3.5" />
+        Idée archivée
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center w-full gap-0">
+      {FUNNEL_STEPS.map((step, index) => {
+        const isCompleted = currentIndex > index;
+        const isCurrent = currentIndex === index;
+        const isFuture = currentIndex < index;
+        const StepIcon = stepIcons[step.key] || HelpCircle;
+
+        return (
+          <React.Fragment key={step.key}>
+            {/* Step node */}
+            <div className="flex flex-col items-center relative group/step" style={{ flex: '0 0 auto' }}>
+              {/* Circle */}
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-500 ${
+                  isCompleted
+                    ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm shadow-emerald-200'
+                    : isCurrent
+                      ? 'bg-philips-blue border-philips-blue text-white shadow-md shadow-philips-blue/30 ring-4 ring-philips-blue/10 scale-110'
+                      : 'bg-white border-slate-200 text-slate-300'
+                }`}
+              >
+                {isCompleted ? (
+                  <Check className="w-3.5 h-3.5" />
+                ) : (
+                  <StepIcon className="w-3 h-3" />
+                )}
+              </div>
+              {/* Label */}
+              <span
+                className={`text-[9px] mt-1.5 font-semibold leading-tight text-center whitespace-nowrap transition-colors duration-300 ${
+                  isCompleted ? 'text-emerald-600'
+                    : isCurrent ? 'text-philips-blue font-bold'
+                    : 'text-slate-300'
+                }`}
+              >
+                <span className="hidden sm:inline">{step.label}</span>
+                <span className="sm:hidden">{step.shortLabel}</span>
+              </span>
+            </div>
+
+            {/* Connector line */}
+            {index < FUNNEL_STEPS.length - 1 && (
+              <div className="flex-1 flex items-start pt-3.5">
+                <div
+                  className={`h-0.5 w-full rounded-full transition-all duration-500 ${
+                    currentIndex > index
+                      ? 'bg-emerald-400'
+                      : currentIndex === index
+                        ? 'bg-gradient-to-r from-philips-blue to-slate-200'
+                        : 'bg-slate-200'
+                  }`}
+                />
+              </div>
+            )}
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+};
+
+const getModalityIcon = (modality) => {
+  switch (modality) {
+    case 'IRM':
+      return <Radio className="w-4 h-4 text-sky-600" />;
+    case 'Échographie':
+      return <Waves className="w-4 h-4 text-indigo-600" />;
+    case 'Monitorage':
+      return <Activity className="w-4 h-4 text-emerald-600" />;
+    case 'Image-Guided Therapy':
+      return <Eye className="w-4 h-4 text-violet-600" />;
+    default:
+      return <HelpCircle className="w-4 h-4 text-slate-600" />;
+  }
+};
+
+const getStatusConfig = (status) => {
+  switch (status) {
+    case 'Soumis':
+      return {
+        bg: 'bg-slate-100 border-slate-200 text-slate-700',
+        dot: 'bg-slate-500'
+      };
+    case 'En évaluation':
+      return {
+        bg: 'bg-amber-50 border-amber-200 text-amber-800',
+        dot: 'bg-amber-500'
+      };
+    case 'Chiffrage Ressources':
+      return {
+        bg: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+        dot: 'bg-indigo-500'
+      };
+    case 'Arbitrage Philips':
+      return {
+        bg: 'bg-purple-50 border-purple-200 text-purple-800',
+        dot: 'bg-purple-500'
+      };
+    case 'Approuvé':
+      return {
+        bg: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+        dot: 'bg-emerald-500'
+      };
+    case 'Archivé':
+      return {
+        bg: 'bg-rose-50 border-rose-200 text-rose-800',
+        dot: 'bg-rose-500'
+      };
+    default:
+      return {
+        bg: 'bg-slate-50 border-slate-200 text-slate-800',
+        dot: 'bg-slate-500'
+      };
+  }
+};
+
+export default function App() {
+  const [user, setUser] = useState(null); // { id, email, name, hospital, role }
+  const [authLoading, setAuthLoading] = useState(true);
+  const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
+  
+  // Auth Form States
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authHospital, setAuthHospital] = useState('');
+  const [authRole, setAuthRole] = useState('pi'); // 'pi' | 'orchestrator'
+
+  // Dynamic role matching current user (default 'pi' if not logged in)
+  const role = user ? user.role : 'pi';
+  
+  const [ideas, setIdeas] = useState([]);
+
+  // Selected idea for detailed drawer view
+  const [selectedIdea, setSelectedIdea] = useState(null);
+  
+  // Drawer form state (editable copy)
+  const [editTitle, setEditTitle] = useState('');
+  const [editProblem, setEditProblem] = useState('');
+  const [editSolution, setEditSolution] = useState('');
+  const [editModality, setEditModality] = useState('');
+  const [editStatus, setEditStatus] = useState('');
+  const [editFeedback, setEditFeedback] = useState('');
+  const [editBusinessUnit, setEditBusinessUnit] = useState('');
+
+  // PI submission form states
+  const [newTitle, setNewTitle] = useState('');
+  const [newProblem, setNewProblem] = useState('');
+  const [newSolution, setNewSolution] = useState('');
+  const [newModality, setNewModality] = useState('IRM');
+  const [tempAttachments, setTempAttachments] = useState([]); // Simulated attachments before submit
+
+  // Search and Business Unit filters for Orchestrator view
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('Tous');
+  const [buFilter, setBuFilter] = useState('Tous');
+
+  // Notifications states
+  const [toast, setToast] = useState(null);
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+
+  // 1. Session check on Mount (Supabase vs Local Fallback)
+  useEffect(() => {
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          fetchSupabaseProfile(session.user);
+        } else {
+          setAuthLoading(false);
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          fetchSupabaseProfile(session.user);
+        } else {
+          setUser(null);
+          setAuthLoading(false);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    } else {
+      const savedUser = localStorage.getItem('philips_gateway_user');
+      if (savedUser) {
+        setUser(JSON.parse(savedUser));
+      }
+      setAuthLoading(false);
+    }
+  }, []);
+
+  const fetchSupabaseProfile = async (supabaseUser) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', supabaseUser.id)
+        .single();
+      
+      if (data) {
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email,
+          name: data.name,
+          hospital: data.hospital,
+          role: data.role
+        });
+      } else {
+        const meta = supabaseUser.user_metadata || {};
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseUser.email,
+          name: meta.name || 'Utilisateur',
+          hospital: meta.hospital || 'Non spécifié',
+          role: meta.role || 'pi'
+        });
+      }
+    } catch (err) {
+      console.error("Error fetching profile from DB:", err);
+      const meta = supabaseUser.user_metadata || {};
+      setUser({
+        id: supabaseUser.id,
+        email: supabaseUser.email,
+        name: meta.name || 'Utilisateur',
+        hospital: meta.hospital || 'Non spécifié',
+        role: meta.role || 'pi'
+      });
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // 2. Load ideas depending on logged-in user
+  useEffect(() => {
+    if (!user) {
+      setIdeas([]);
+      return;
+    }
+
+    if (supabase) {
+      fetchIdeasFromSupabase();
+    } else {
+      const saved = localStorage.getItem('philips_gateway_ideas');
+      if (saved) {
+        setIdeas(JSON.parse(saved));
+      } else {
+        localStorage.setItem('philips_gateway_ideas', JSON.stringify(INITIAL_IDEAS));
+        setIdeas(INITIAL_IDEAS);
+      }
+    }
+  }, [user]);
+
+  const fetchIdeasFromSupabase = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ideas')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      const mapped = data.map(item => ({
+        id: item.id,
+        title: item.title,
+        problem: item.problem,
+        solution: item.solution,
+        modality: item.modality,
+        businessUnit: item.business_unit,
+        status: item.status,
+        piName: item.pi_name,
+        piHospital: item.pi_hospital,
+        piEmail: item.pi_email,
+        submittedAt: item.submitted_at,
+        feedback: item.feedback || '',
+        attachments: item.attachments || [],
+        userId: item.user_id
+      }));
+      setIdeas(mapped);
+    } catch (err) {
+      console.error("Error fetching ideas:", err);
+      showToast("Impossible de synchroniser les idées.", "error");
+    }
+  };
+
+  // Toast notifier
+  const showToast = (message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4500);
+  };
+
+  // Auth Submit Handlers
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault();
+    if (authMode === 'login') {
+      if (supabase) {
+        // Real Supabase Sign In
+        setAuthLoading(true);
+        try {
+          const { error } = await supabase.auth.signInWithPassword({
+            email: authEmail,
+            password: authPassword
+          });
+          if (error) throw error;
+          showToast("Connexion réussie !", "success");
+        } catch (err) {
+          showToast(err.message || "Erreur de connexion.", "error");
+        } finally {
+          setAuthLoading(false);
+        }
+      } else {
+        // Local Login Fallback
+        handleLocalSignIn(e);
+      }
+    } else {
+      if (supabase) {
+        // Real Supabase Sign Up
+        setAuthLoading(true);
+        try {
+          const { data, error } = await supabase.auth.signUp({
+            email: authEmail,
+            password: authPassword,
+            options: {
+              data: {
+                name: authName,
+                hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
+                role: authRole
+              }
+            }
+          });
+          if (error) throw error;
+          
+          if (data.user) {
+            // Write user details to profiles table
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .insert([{
+                id: data.user.id,
+                name: authName,
+                hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
+                role: authRole
+              }]);
+            if (profileError) {
+              console.warn("Profiles insert warning:", profileError.message);
+            }
+          }
+          showToast("Inscription réussie ! Connexion en cours...", "success");
+        } catch (err) {
+          showToast(err.message || "Erreur lors de l'inscription.", "error");
+        } finally {
+          setAuthLoading(false);
+        }
+      } else {
+        // Local Sign Up Fallback
+        handleLocalSignUp(e);
+      }
+    }
+  };
+
+  const handleLocalSignIn = (e) => {
+    if (!authEmail || !authPassword) {
+      showToast("Veuillez remplir tous les champs.", "error");
+      return;
+    }
+    // Hardcoded demo credentials
+    if (authEmail === 'admin@philips.com' && authPassword === 'admin123') {
+      const demoAdmin = {
+        id: 'demo-admin',
+        email: 'admin@philips.com',
+        name: 'Orchestrateur Philips',
+        hospital: 'Philips Headquarters',
+        role: 'orchestrator'
+      };
+      setUser(demoAdmin);
+      localStorage.setItem('philips_gateway_user', JSON.stringify(demoAdmin));
+      showToast("Connexion Démo (Admin) réussie !", "success");
+      return;
+    }
+    if (authEmail === 'doctor@necker.fr' && authPassword === 'doctor123') {
+      const demoDoctor = {
+        id: 'demo-doctor',
+        email: 'doctor@necker.fr',
+        name: 'Dr. Claire Martin',
+        hospital: 'Hôpital Necker',
+        role: 'pi'
+      };
+      setUser(demoDoctor);
+      localStorage.setItem('philips_gateway_user', JSON.stringify(demoDoctor));
+      showToast("Connexion Démo (PI) réussie !", "success");
+      return;
+    }
+
+    const savedUsers = localStorage.getItem('philips_gateway_users');
+    const users = savedUsers ? JSON.parse(savedUsers) : [];
+    const foundUser = users.find(
+      u => u.email.toLowerCase() === authEmail.toLowerCase() && u.password === authPassword
+    );
+
+    if (!foundUser) {
+      showToast("Identifiants incorrects ou compte inexistant.", "error");
+      return;
+    }
+
+    setUser(foundUser);
+    localStorage.setItem('philips_gateway_user', JSON.stringify(foundUser));
+    showToast("Connexion réussie !", "success");
+  };
+
+  const handleLocalSignUp = (e) => {
+    if (!authEmail || !authPassword || !authName) {
+      showToast("Veuillez remplir tous les champs obligatoires.", "error");
+      return;
+    }
+
+    const savedUsers = localStorage.getItem('philips_gateway_users');
+    const users = savedUsers ? JSON.parse(savedUsers) : [];
+
+    if (users.find(u => u.email.toLowerCase() === authEmail.toLowerCase())) {
+      showToast("Cet email est déjà enregistré.", "error");
+      return;
+    }
+
+    const newUser = {
+      id: `user-${Date.now()}`,
+      email: authEmail,
+      password: authPassword,
+      name: authName,
+      hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
+      role: authRole
+    };
+
+    users.push(newUser);
+    localStorage.setItem('philips_gateway_users', JSON.stringify(users));
+    setUser(newUser);
+    localStorage.setItem('philips_gateway_user', JSON.stringify(newUser));
+    showToast("Compte créé et connecté !", "success");
+  };
+
+  const handleSignOut = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+      setUser(null);
+    } else {
+      localStorage.removeItem('philips_gateway_user');
+      setUser(null);
+    }
+    setSelectedIdea(null);
+    showToast("Déconnexion réussie.", "info");
+  };
+
+  const handleResetData = async () => {
+    if (window.confirm("Voulez-vous restaurer les données d'origine ? Toutes vos modifications locales seront perdues.")) {
+      if (supabase) {
+        showToast("La réinitialisation globale n'est pas disponible en ligne.", "warning");
+        return;
+      }
+      setIdeas(INITIAL_IDEAS);
+      localStorage.setItem('philips_gateway_ideas', JSON.stringify(INITIAL_IDEAS));
+      setSelectedIdea(null);
+      showToast("Données d'origine restaurées !", "info");
+    }
+  };
+
+  // Dashboard calculations for orchestrator
+  const totalIdeas = ideas.length;
+  const inEvaluationCount = ideas.filter(i => i.status === 'En évaluation').length;
+  const approvedCount = ideas.filter(i => i.status === 'Approuvé').length;
+
+
+  // Handle file upload — reads content as base64 so it survives page reloads
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    let loaded = 0;
+    const results = [];
+
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        results.push({
+          name: file.name,
+          size: file.size > 1024 * 1024
+            ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+            : `${(file.size / 1024).toFixed(0)} KB`,
+          dataUrl: ev.target.result // base64 data URI, persists in localStorage
+        });
+        loaded++;
+        if (loaded === files.length) {
+          setTempAttachments(prev => [...prev, ...results]);
+          showToast(`${files.length} fichier(s) joint(s) avec succès.`, 'info');
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeTempAttachment = (index) => {
+    setTempAttachments(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Triggers file download — uses stored base64 dataUrl, or generates a placeholder for mock data
+  const handleDownloadAttachment = (e, file) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    let downloadUrl;
+    let needsRevoke = false;
+
+    if (file.dataUrl) {
+      // Real uploaded file stored as base64 — works after reload
+      downloadUrl = file.dataUrl;
+    } else {
+      // Mock/demo file: generate a representative text document
+      const mockContent =
+        `Document de recherche clinique Philips\n` +
+        `===================================\n` +
+        `Fichier : ${file.name}\n` +
+        `Taille  : ${file.size || 'N/A'}\n\n` +
+        `Ce fichier est une démonstration du MVP Philips Clinical Innovation Gateway.\n` +
+        `Dans la version de production, le vrai document serait téléchargé depuis le serveur.`;
+      const blob = new Blob([mockContent], { type: 'text/plain;charset=utf-8' });
+      downloadUrl = URL.createObjectURL(blob);
+      needsRevoke = true;
+    }
+
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = file.name;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    if (needsRevoke) {
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
+    }
+    showToast(`Téléchargement de "${file.name}" démarré.`, 'success');
+  };
+
+  // PI Submission Handler
+  const handleFormSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!newTitle.trim()) {
+      showToast("Veuillez saisir un titre.", "error");
+      return;
+    }
+    if (newProblem.length > 1500) {
+      showToast("Le problème clinique dépasse 1500 caractères.", "error");
+      return;
+    }
+    if (newSolution.length > 1500) {
+      showToast("La solution proposée dépasse 1500 caractères.", "error");
+      return;
+    }
+
+    const newIdea = {
+      id: `idea-${Date.now()}`,
+      title: newTitle,
+      problem: newProblem,
+      solution: newSolution,
+      modality: newModality,
+      businessUnit: '', // Starts empty, to be assigned by Orchestrator
+      status: 'Soumis',
+      piName: user?.name || 'Dr. Anonyme',
+      piHospital: user?.hospital || 'Hôpital non renseigné',
+      piEmail: user?.email || 'anon@example.com',
+      submittedAt: new Date().toISOString(),
+      feedback: '',
+      attachments: tempAttachments,
+      userId: user?.id || null
+    };
+
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ideas')
+          .insert([{
+            id: newIdea.id,
+            title: newIdea.title,
+            problem: newIdea.problem,
+            solution: newIdea.solution,
+            modality: newIdea.modality,
+            business_unit: newIdea.businessUnit,
+            status: newIdea.status,
+            pi_name: newIdea.piName,
+            pi_hospital: newIdea.piHospital,
+            pi_email: newIdea.piEmail,
+            submitted_at: newIdea.submittedAt,
+            feedback: newIdea.feedback,
+            attachments: newIdea.attachments,
+            user_id: user?.id
+          }]);
+
+        if (error) throw error;
+
+        setIdeas([newIdea, ...ideas]);
+        showToast("Votre idée a été enregistrée en ligne !", "success");
+      } catch (err) {
+        console.error("Error saving idea to Supabase:", err);
+        showToast(err.message || "Erreur de sauvegarde en ligne.", "error");
+      }
+    } else {
+      const updated = [newIdea, ...ideas];
+      setIdeas(updated);
+      localStorage.setItem('philips_gateway_ideas', JSON.stringify(updated));
+      showToast("Votre idée a été soumise avec succès !", "success");
+    }
+    
+    // Clear states
+    setNewTitle('');
+    setNewProblem('');
+    setNewSolution('');
+    setNewModality('IRM');
+    setTempAttachments([]);
+  };
+
+  // Orchestrator Edit Handler
+  const handleUpdateIdea = async (e) => {
+    e.preventDefault();
+    if (!selectedIdea) return;
+
+    if (!editTitle.trim()) {
+      showToast("Le titre ne peut pas être vide.", "error");
+      return;
+    }
+
+    const updatedFields = {
+      title: editTitle,
+      problem: editProblem,
+      solution: editSolution,
+      modality: editModality,
+      status: editStatus,
+      feedback: editFeedback,
+      businessUnit: editBusinessUnit
+    };
+
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ideas')
+          .update({
+            title: editTitle,
+            problem: editProblem,
+            solution: editSolution,
+            modality: editModality,
+            status: editStatus,
+            feedback: editFeedback,
+            business_unit: editBusinessUnit
+          })
+          .eq('id', selectedIdea.id);
+
+        if (error) throw error;
+
+        showToast("Mise à jour enregistrée en ligne !", "success");
+      } catch (err) {
+        console.error("Error updating idea in Supabase:", err);
+        showToast(err.message || "Erreur de mise à jour en ligne.", "error");
+        return;
+      }
+    }
+
+    const updatedIdeas = ideas.map(idea => {
+      if (idea.id === selectedIdea.id) {
+        return {
+          ...idea,
+          ...updatedFields
+        };
+      }
+      return idea;
+    });
+
+    setIdeas(updatedIdeas);
+    if (!supabase) {
+      localStorage.setItem('philips_gateway_ideas', JSON.stringify(updatedIdeas));
+    }
+    
+    // Update selected idea reference in view
+    setSelectedIdea(prev => ({
+      ...prev,
+      ...updatedFields
+    }));
+
+    // Trigger explicit confirmation message
+    setShowUpdateConfirmation(true);
+    if (!supabase) {
+      showToast("Mise à jour enregistrée !", "success");
+    }
+
+    // Close/dim confirmation message after 4s
+    setTimeout(() => {
+      setShowUpdateConfirmation(false);
+    }, 4000);
+  };
+
+  // Select idea to view details & initialize drawer inputs
+  const openDetails = (idea) => {
+    setSelectedIdea(idea);
+    setEditTitle(idea.title);
+    setEditProblem(idea.problem);
+    setEditSolution(idea.solution);
+    setEditModality(idea.modality);
+    setEditStatus(idea.status);
+    setEditFeedback(idea.feedback || '');
+    setEditBusinessUnit(idea.businessUnit || '');
+    setShowUpdateConfirmation(false);
+  };
+
+  // Tab for active vs archived ideas in PI view
+  const [ideaTab, setIdeaTab] = useState('active'); // 'active' | 'archived'
+
+  // Filtered ideas based on selected tab (PI View)
+  const filteredPIIdeas = ideas.filter(idea => {
+    // PIs must only see their own submitted ideas
+    const isOwnIdea = user && (idea.piEmail === user.email || idea.userId === user.id);
+    if (!isOwnIdea) return false;
+
+    if (ideaTab === 'archived') return idea.status === 'Archivé';
+    return idea.status !== 'Archivé';
+  });
+
+  // Filter ideas for Orchestrator
+  const filteredOrchestratorIdeas = ideas.filter(idea => {
+    const matchesSearch = 
+      idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      idea.piName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      idea.piHospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (idea.feedback && idea.feedback.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = statusFilter === 'Tous' || idea.status === statusFilter;
+    const matchesBU = buFilter === 'Tous' || idea.businessUnit === buFilter;
+
+    return matchesSearch && matchesStatus && matchesBU;
+  });
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-slate-200 border-t-philips-blue rounded-full animate-spin"></div>
+          <p className="text-slate-500 font-semibold text-sm tracking-wide">Chargement du portail Philips...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4 sm:p-6 lg:p-8 font-sans">
+        <div className="max-w-4xl w-full bg-white rounded-3xl shadow-premium overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[550px] border border-slate-100">
+          
+          {/* Left Column: Corporate Brand / Value Prop */}
+          <div className="md:col-span-5 bg-gradient-to-br from-philips-dark-blue to-philips-blue p-8 text-white flex flex-col justify-between relative overflow-hidden text-left">
+            <div className="absolute top-0 right-0 opacity-10 pointer-events-none">
+              <Sparkles className="w-64 h-64 -mr-16 -mt-16 text-white" />
+            </div>
+            
+            <div className="space-y-6 relative z-10">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center border border-white/20">
+                  <ShieldCheck className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-extrabold tracking-widest text-white text-base">PHILIPS</span>
+              </div>
+              
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black leading-tight tracking-tight text-white">Clinical Innovation Gateway</h2>
+                <p className="text-slate-200 text-xs leading-relaxed">
+                  Co-construire la médecine de demain en connectant praticiens cliniques et ingénieurs de recherche Philips.
+                </p>
+              </div>
+
+              <div className="space-y-3 pt-4 border-t border-white/10">
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold block">Soumission simplifiée</span>
+                    <span className="text-slate-300">Décrivez vos concepts cliniques et importez vos études.</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold block">Suivi en direct</span>
+                    <span className="text-slate-300">Suivez l'avancement via notre timeline à chaque étape.</span>
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="text-xs">
+                    <span className="font-bold block">Feedback direct</span>
+                    <span className="text-slate-300">Échangez avec les experts R&D de Philips.</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[10px] text-slate-400 mt-8 border-t border-white/10 pt-4 flex items-center gap-1.5">
+              <Info className="w-3.5 h-3.5" />
+              <span>Version MVP 1.1.0 • Philips HealthTech</span>
+            </div>
+          </div>
+
+          {/* Right Column: Form */}
+          <div className="md:col-span-7 p-8 flex flex-col justify-between text-left">
+            <div>
+              {/* Database Status Badge */}
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Connexion Portail</span>
+                {supabase ? (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200">
+                    <Database className="w-3 h-3" /> Mode Cloud (Supabase)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-sky-50 text-sky-700 rounded-full text-[10px] font-bold border border-sky-200">
+                    <Info className="w-3 h-3" /> Mode Local (Démo)
+                  </span>
+                )}
+              </div>
+
+              {/* Form Mode Selector */}
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl mb-6">
+                <button
+                  onClick={() => { setAuthMode('login'); }}
+                  className={`flex-1 text-center py-2 rounded-lg text-xs font-bold transition-all ${
+                    authMode === 'login' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Se connecter
+                </button>
+                <button
+                  onClick={() => { setAuthMode('signup'); }}
+                  className={`flex-1 text-center py-2 rounded-lg text-xs font-bold transition-all ${
+                    authMode === 'signup' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  Créer un compte
+                </button>
+              </div>
+
+              <h3 className="text-xl font-extrabold text-slate-800 tracking-tight mb-2">
+                {authMode === 'login' ? 'Bienvenue à nouveau' : 'Rejoindre le Gateway'}
+              </h3>
+              <p className="text-slate-500 text-xs mb-6">
+                {authMode === 'login' 
+                  ? 'Connectez-vous pour suivre ou soumettre des innovations cliniques.' 
+                  : 'Créez votre compte pour commencer à soumettre ou gérer les idées.'}
+              </p>
+
+              <form onSubmit={handleAuthSubmit} className="space-y-4">
+                {authMode === 'signup' && (
+                  <>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nom Complet</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          required
+                          placeholder="Dr. Jean Dupont"
+                          value={authName}
+                          onChange={(e) => setAuthName(e.target.value)}
+                          className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Votre Rôle</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAuthRole('pi')}
+                          className={`py-2 px-3 rounded-lg border text-xs font-bold text-center transition ${
+                            authRole === 'pi' 
+                              ? 'border-philips-blue bg-philips-light-blue/50 text-philips-blue' 
+                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          PI (Médecin / Praticien)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setAuthRole('orchestrator')}
+                          className={`py-2 px-3 rounded-lg border text-xs font-bold text-center transition ${
+                            authRole === 'orchestrator' 
+                              ? 'border-philips-blue bg-philips-light-blue/50 text-philips-blue' 
+                              : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                          }`}
+                        >
+                          Orchestrateur (Philips R&D)
+                        </button>
+                      </div>
+                    </div>
+
+                    {authRole === 'pi' && (
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hôpital / Institution</label>
+                        <div className="relative">
+                          <Building className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                          <input
+                            type="text"
+                            required
+                            placeholder="Hôpital Cochin, AP-HP"
+                            value={authHospital}
+                            onChange={(e) => setAuthHospital(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Adresse Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="email"
+                      required
+                      placeholder="jean.dupont@ch-hopital.fr"
+                      value={authEmail}
+                      onChange={(e) => setAuthEmail(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mot de passe</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={authPassword}
+                      onChange={(e) => setAuthPassword(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-xs font-bold tracking-wide shadow-md shadow-philips-blue/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer mt-2"
+                >
+                  {authMode === 'login' ? 'Se connecter' : "Créer l'accès"}
+                </button>
+              </form>
+            </div>
+
+            {/* Quick Demo Fill Buttons (Only visible if Supabase is offline) */}
+            {!supabase && (
+              <div className="mt-8 pt-4 border-t border-slate-100">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Comptes de test rapides (Démo) :</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setAuthEmail('doctor@necker.fr');
+                      setAuthPassword('doctor123');
+                      setAuthMode('login');
+                      showToast("Champs remplis pour Dr. Claire Martin (PI)", "info");
+                    }}
+                    className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Accès PI (Médecin)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAuthEmail('admin@philips.com');
+                      setAuthPassword('admin123');
+                      setAuthMode('login');
+                      showToast("Champs remplis pour l'Orchestrateur (Admin)", "info");
+                    }}
+                    className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Accès Orchestrateur
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-philips-blue/20 selection:text-philips-blue">
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50">
+          <div className={`flex items-center gap-3 px-5 py-4 rounded-xl shadow-lg border text-sm font-medium transition-all duration-300 animate-slideLeft ${
+            toast.type === 'error' ? 'bg-red-50 text-red-950 border-red-200' :
+            toast.type === 'info' ? 'bg-sky-50 text-sky-950 border-sky-200' :
+            'bg-emerald-50 text-emerald-950 border-emerald-200'
+          }`}>
+            {toast.type === 'error' ? (
+              <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            ) : toast.type === 'info' ? (
+              <Info className="w-5 h-5 text-sky-600 shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            )}
+            <span>{toast.message}</span>
+            <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-slate-600">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Corporate Header */}
+      <header className="bg-white/80 backdrop-blur-md sticky top-0 border-b border-slate-100 z-30 transition-all-custom">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+          
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-philips-blue rounded-xl flex items-center justify-center shadow-md shadow-philips-blue/20 hover:scale-105 transition duration-300">
+              <ShieldCheck className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold tracking-widest text-philips-blue text-lg">PHILIPS</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-philips-accent"></span>
+                <span className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Gateway</span>
+              </div>
+              <h1 className="text-sm font-semibold text-slate-600 -mt-1 hidden sm:block">Clinical Innovation Gateway</h1>
+            </div>
+          </div>
+
+          {/* User Profile Info and DB Status */}
+          <div className="flex items-center gap-3">
+            
+            {/* Database indicator */}
+            <div className="hidden md:flex items-center">
+              {supabase ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[10px] font-bold">
+                  <Database className="w-3 h-3 text-emerald-600" />
+                  Cloud Synced
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-100 rounded-full text-[10px] font-bold">
+                  <Database className="w-3 h-3 text-sky-600" />
+                  Local Fallback
+                </span>
+              )}
+            </div>
+
+            {/* Profile Tag */}
+            <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200/50 pl-3 pr-4 py-1.5 rounded-full">
+              <div className="w-6 h-6 rounded-full bg-philips-blue flex items-center justify-center text-[10px] font-extrabold text-white">
+                {user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0,2).toUpperCase() : 'U'}
+              </div>
+              <div className="text-left leading-tight">
+                <span className="block text-xs font-bold text-slate-800 truncate max-w-[120px]">{user?.name}</span>
+                <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  {user?.role === 'orchestrator' ? 'Orchestrateur' : 'PI'}
+                </span>
+              </div>
+            </div>
+
+            {/* Logout button */}
+            <button
+              onClick={handleSignOut}
+              title="Se déconnecter"
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition duration-200 cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+
+            {/* Reset mock data button (only visible in local fallback) */}
+            {!supabase && (
+              <button 
+                onClick={handleResetData}
+                title="Réinitialiser les données"
+                className="p-2 text-slate-400 hover:text-philips-blue hover:bg-slate-50 rounded-full transition duration-200 cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+            )}
+            
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 animate-ping"></span>
+          </div>
+
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        {/* ============================================== */}
+        {/* 1. PRIVATE INVESTIGATOR VIEW                   */}
+        {/* ============================================== */}
+        {role === 'pi' && (
+          <div className="space-y-8 animate-fadeIn duration-500">
+            
+            <div className="bg-gradient-to-r from-philips-dark-blue to-philips-blue p-8 rounded-3xl text-white shadow-premium relative overflow-hidden">
+              <div className="absolute right-0 bottom-0 top-0 opacity-10 flex items-center pr-10">
+                <Sparkles className="w-64 h-64 text-white" />
+              </div>
+              <div className="relative z-10 max-w-2xl text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold tracking-wide mb-4 border border-white/10">
+                  <User className="w-3.5 h-3.5 text-philips-light-blue" />
+                  Espace Praticien
+                </div>
+                <h2 className="text-3xl font-extrabold tracking-tight">Bonjour, {user?.name || 'Praticien'}</h2>
+                <p className="text-slate-200 mt-2 text-sm leading-relaxed text-left">
+                  Bienvenue sur le portail d'innovation clinique Philips de l'<strong>{user?.hospital || 'votre établissement'}</strong>. Soumettez vos idées de dispositifs et solutions numériques pour co-construire la médecine de demain avec nos ingénieurs.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              
+              {/* Submission Form (Left) */}
+              <div className="lg:col-span-5 bg-white p-6 rounded-2xl shadow-premium border border-slate-100 relative">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100">
+                  <div className="p-2 bg-philips-light-blue rounded-lg text-philips-blue">
+                    <PlusCircle className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-800 text-base">Soumettre une idée</h3>
+                    <p className="text-slate-400 text-xs mt-0.5">Décrivez votre concept clinique</p>
+                  </div>
+                </div>
+
+                <form onSubmit={handleFormSubmit} className="space-y-5 text-left">
+                  
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Titre de l'idée
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="ex: Système d'alignement guidé par IA..."
+                      value={newTitle}
+                      onChange={(e) => setNewTitle(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Modalité Philips (Imagerie)
+                    </label>
+                    <select
+                      value={newModality}
+                      onChange={(e) => setNewModality(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 bg-white"
+                    >
+                      {MODALITIES.map((mod) => (
+                        <option key={mod} value={mod}>{mod}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Problème clinique constaté
+                      </label>
+                      <span className={`text-[10px] font-medium ${
+                        newProblem.length > 1400 ? 'text-red-500 font-bold' : 
+                        newProblem.length > 1100 ? 'text-amber-500' : 'text-slate-400'
+                      }`}>
+                        {newProblem.length}/1500 car.
+                      </span>
+                    </div>
+                    <textarea
+                      required
+                      maxLength={1500}
+                      rows={5}
+                      placeholder="Décrivez la difficulté clinique rencontrée (max 1500 caractères)..."
+                      value={newProblem}
+                      onChange={(e) => setNewProblem(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 resize-none text-slate-700"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Solution proposée
+                      </label>
+                      <span className={`text-[10px] font-medium ${
+                        newSolution.length > 1400 ? 'text-red-500 font-bold' : 
+                        newSolution.length > 1100 ? 'text-amber-500' : 'text-slate-400'
+                      }`}>
+                        {newSolution.length}/1500 car.
+                      </span>
+                    </div>
+                    <textarea
+                      required
+                      maxLength={1500}
+                      rows={5}
+                      placeholder="Comment améliorer ou résoudre ce problème techniquement (max 1500 caractères)..."
+                      value={newSolution}
+                      onChange={(e) => setNewSolution(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 resize-none text-slate-700"
+                    />
+                  </div>
+
+                  {/* Attachment section */}
+                  <div className="p-4 bg-slate-50 border border-slate-200/50 rounded-xl">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+                      Pièces jointes (Articles scientifiques, images, études)
+                    </label>
+                    <div className="flex items-center justify-center w-full">
+                      <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-all duration-200">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Paperclip className="w-5 h-5 text-slate-400 mb-1" />
+                          <p className="text-xs text-slate-500"><span className="font-semibold">Cliquez pour ajouter</span> ou glissez-déposez</p>
+                        </div>
+                        <input 
+                          type="file" 
+                          multiple 
+                          className="hidden" 
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Temp Attachments List */}
+                    {tempAttachments.length > 0 && (
+                      <div className="mt-3 space-y-1.5">
+                        {tempAttachments.map((file, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-xs">
+                            <span className="flex items-center gap-1.5 text-slate-600 truncate max-w-[80%]">
+                              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              <span className="truncate">{file.name}</span>
+                              <span className="text-[10px] text-slate-400 shrink-0">({file.size})</span>
+                            </span>
+                            <button 
+                              type="button" 
+                              onClick={() => removeTempAttachment(idx)}
+                              className="text-slate-400 hover:text-red-500 transition"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-sm font-bold tracking-wide shadow-md shadow-philips-blue/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Soumettre l'idée
+                  </button>
+
+                </form>
+              </div>
+
+              {/* Submitted Ideas (Right) */}
+              <div className="lg:col-span-7 space-y-6 text-left">
+                
+                {/* Tab selector for ideas */}
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => setIdeaTab('active')}
+                    className={`px-4 py-1 rounded-full text-sm font-medium transition-all ${
+                      ideaTab === 'active'
+                        ? 'bg-philips-blue text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Mes idées soumises
+                  </button>
+                  <button
+                    onClick={() => setIdeaTab('archived')}
+                    className={`px-4 py-1 rounded-full text-sm font-medium transition-all ${
+                      ideaTab === 'archived'
+                        ? 'bg-philips-blue text-white shadow-sm'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    Idées archivées
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-base">
+                      {ideaTab === 'archived' ? 'Idées archivées' : 'Mes idées soumises'}
+                    </h3>
+                    <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">
+                      {ideaTab === 'archived' ? 'Liste des idées déjà archivées' : 'Suivi de vos propositions'}
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">
+                    {filteredPIIdeas.length} Idée{filteredPIIdeas.length !== 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {filteredPIIdeas.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-premium">
+                    <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 font-medium text-sm">
+                      {ideaTab === 'archived' ? "Aucune idée archivée pour le moment." : "Vous n'avez pas encore soumis d'idée."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filteredPIIdeas.map((idea) => {
+                      return (
+                        <div 
+                          key={idea.id}
+                          className="bg-white rounded-2xl p-6 shadow-premium border border-slate-100 hover:shadow-premium-hover transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden group"
+                        >
+
+
+                          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-4">
+                            <div>
+                              <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(idea.submittedAt).toLocaleDateString('fr-FR', {
+                                  day: '2-digit', month: 'short', year: 'numeric'
+                                })}
+                              </span>
+                              <h4 className="font-extrabold text-slate-800 text-base mt-1 group-hover:text-philips-blue transition duration-200">
+                                {idea.title}
+                              </h4>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200/50 rounded-full text-xs font-semibold text-slate-700">
+                                {getModalityIcon(idea.modality)}
+                                {idea.modality}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mt-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
+                            <div>
+                              <span className="block font-bold text-slate-500 uppercase tracking-wider mb-1 text-slate-400">
+                                Problème clinique
+                              </span>
+                              <p className="text-slate-700 line-clamp-4 leading-relaxed whitespace-pre-wrap">{idea.problem}</p>
+                            </div>
+                            <div>
+                              <span className="block font-bold text-slate-500 uppercase tracking-wider mb-1 text-slate-400">
+                                Solution proposée
+                              </span>
+                              <p className="text-slate-700 line-clamp-4 leading-relaxed whitespace-pre-wrap">{idea.solution}</p>
+                            </div>
+                          </div>
+
+                          {/* Funnel Timeline */}
+                          <div className="mt-4 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Avancement du dossier</span>
+                            <FunnelTimeline currentStatus={idea.status} />
+                          </div>
+
+                          {/* Attachments Display with Download */}
+                          {idea.attachments && idea.attachments.length > 0 && (
+                            <div className="mt-3">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Fichiers joints (cliquez pour télécharger) :</span>
+                              <div className="flex flex-wrap gap-2">
+                                {idea.attachments.map((file, i) => (
+                                  <button
+                                    key={i}
+                                    type="button"
+                                    onClick={(e) => handleDownloadAttachment(e, file)}
+                                    className="inline-flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 hover:border-slate-300 px-2.5 py-1 rounded-lg text-xs text-slate-700 transition font-medium cursor-pointer"
+                                  >
+                                    <FileText className="w-3 h-3 text-slate-400" />
+                                    <span>{file.name}</span>
+                                    <span className="text-[9px] text-slate-400 font-normal">({file.size})</span>
+                                    <Download className="w-3 h-3 text-slate-400 ml-0.5" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {idea.feedback ? (
+                            <div className="mt-4 p-4 bg-sky-50/70 border border-sky-100 rounded-xl flex items-start gap-3">
+                              <div className="p-1.5 bg-sky-100 rounded-lg text-sky-700 shrink-0 mt-0.5">
+                                <MessageSquare className="w-4 h-4" />
+                              </div>
+                              <div>
+                                <span className="block text-[10px] font-bold text-sky-800 uppercase tracking-wider">
+                                  Feedback
+                                </span>
+                                <p className="text-xs text-sky-900 mt-1 leading-relaxed">{idea.feedback}</p>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-400 italic">
+                              <Clock className="w-3.5 h-3.5" />
+                              Aucun feedback pour le moment. Votre dossier est en cours d'évaluation.
+                            </div>
+                          )}
+
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+          </div>
+        )}
+
+        {/* ============================================== */}
+        {/* 2. ORCHESTRATOR VIEW                           */}
+        {/* ============================================== */}
+        {role === 'orchestrator' && (
+          <div className="space-y-8 animate-fadeIn duration-500">
+            
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              
+              <div className="md:col-span-1 flex flex-col justify-center text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 bg-philips-light-blue text-philips-blue rounded-full text-xs font-semibold tracking-wide w-fit mb-2">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Espace Gestionnaire
+                </div>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Tableau de Bord</h2>
+                <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                  Pilotez et arbitrez le catalogue d'idées cliniques reçues.
+                </p>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
+                <div className="space-y-1">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Total Idées</span>
+                  <span className="text-3xl font-black text-slate-800">{totalIdeas}</span>
+                </div>
+                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 group-hover:bg-slate-100 transition duration-300">
+                  <Inbox className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
+                <div className="space-y-1">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">En évaluation</span>
+                  <span className="text-3xl font-black text-amber-600">{inEvaluationCount}</span>
+                </div>
+                <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 group-hover:bg-amber-100 transition duration-300">
+                  <Clock className="w-6 h-6" />
+                </div>
+              </div>
+
+              <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
+                <div className="space-y-1">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Approuvées</span>
+                  <span className="text-3xl font-black text-emerald-600">{approvedCount}</span>
+                </div>
+                <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-100 transition duration-300">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+              </div>
+
+            </div>
+
+            <div className="space-y-5">
+              
+              {/* Filters Panel */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-premium flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                
+                {/* Search */}
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Rechercher par médecin, mot-clé, feedback..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition"
+                  />
+                  {searchTerm && (
+                    <button onClick={() => setSearchTerm('')} className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4">
+                  {/* BU Filter */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtre BU :</span>
+                    <select
+                      value={buFilter}
+                      onChange={(e) => setBuFilter(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-200 bg-slate-50 text-xs font-semibold rounded-lg focus:outline-none focus:ring-1 focus:ring-philips-blue text-slate-700"
+                    >
+                      <option value="Tous">Toutes les BUs</option>
+                      <option value="">Non assignée</option>
+                      {BUSINESS_UNITS.map(bu => (
+                        <option key={bu} value={bu}>{bu}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Status Filters */}
+                  <div className="flex flex-wrap items-center gap-1 bg-slate-50 p-1 rounded-xl border border-slate-200/50">
+                    <button
+                      onClick={() => setStatusFilter('Tous')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${
+                        statusFilter === 'Tous'
+                          ? 'bg-white text-philips-blue shadow-sm'
+                          : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                    >
+                      Tous
+                    </button>
+                    {STATUSES.map(status => {
+                      const count = ideas.filter(i => i.status === status).length;
+                      return (
+                        <button
+                          key={status}
+                          onClick={() => setStatusFilter(status)}
+                          className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1 ${
+                            statusFilter === status
+                              ? 'bg-white text-philips-blue shadow-sm'
+                              : 'text-slate-500 hover:text-slate-800'
+                          }`}
+                        >
+                          <span>{status}</span>
+                          {count > 0 && (
+                            <span className="px-1.5 py-0.2 bg-slate-200 text-slate-700 text-[9px] rounded-full font-black">
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Grid lists */}
+              {filteredOrchestratorIdeas.length === 0 ? (
+                <div className="bg-white rounded-2xl p-16 text-center border border-slate-100 shadow-premium">
+                  <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                  <p className="text-slate-500 font-medium text-sm">Aucune idée ne correspond à votre recherche.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredOrchestratorIdeas.map((idea) => {
+                    const statusCfg = getStatusConfig(idea.status);
+                    const isSelected = selectedIdea?.id === idea.id;
+                    
+                    return (
+                      <div
+                        key={idea.id}
+                        onClick={() => openDetails(idea)}
+                        className={`bg-white rounded-2xl p-5 border shadow-premium hover:shadow-premium-hover transition-all duration-300 cursor-pointer text-left relative overflow-hidden flex flex-col justify-between h-60 group ${
+                          isSelected 
+                            ? 'border-philips-blue ring-2 ring-philips-blue/15' 
+                            : 'border-slate-100 hover:-translate-y-0.5'
+                        }`}
+                      >
+                        <div className={`absolute top-0 left-0 w-full h-1.5 ${statusCfg.dot}`} />
+
+                        <div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-lg text-slate-600">
+                                {getModalityIcon(idea.modality)}
+                                {idea.modality}
+                              </span>
+                              
+                              {idea.businessUnit ? (
+                                <span className="bg-blue-50 border border-blue-200/60 text-philips-blue px-2 py-0.5 rounded-lg font-bold">
+                                  BU : {idea.businessUnit}
+                                </span>
+                              ) : (
+                                <span className="bg-slate-50 text-slate-400 border border-slate-200/30 px-2 py-0.5 rounded-lg italic font-normal">
+                                  BU non assignée
+                                </span>
+                              )}
+                            </div>
+
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3 text-slate-400" />
+                              {new Date(idea.submittedAt).toLocaleDateString('fr-FR')}
+                            </span>
+                          </div>
+
+                          <h4 className="font-extrabold text-slate-800 text-sm group-hover:text-philips-blue transition duration-200 line-clamp-1">
+                            {idea.title}
+                          </h4>
+
+                          <p className="text-slate-500 text-xs mt-2 line-clamp-3 leading-relaxed">
+                            {idea.problem}
+                          </p>
+                        </div>
+
+                        {idea.attachments && idea.attachments.length > 0 && (
+                          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold mt-1">
+                            <Paperclip className="w-3 h-3" />
+                            <span>{idea.attachments.length} pièce(s) jointe(s)</span>
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between pt-3 mt-auto border-t border-slate-100/50">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 shrink-0 border border-slate-200/50">
+                              <User className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="text-left">
+                              <span className="block text-xs font-bold text-slate-700 -mb-0.5">{idea.piName}</span>
+                              <span className="block text-[9px] text-slate-400 flex items-center gap-0.5 font-medium">
+                                <Building className="w-2.5 h-2.5 text-slate-400" />
+                                {idea.piHospital}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusCfg.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
+                              {idea.status}
+                            </span>
+                            <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-philips-blue transition transform group-hover:translate-x-0.5" />
+                          </div>
+                        </div>
+
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+            </div>
+
+          </div>
+        )}
+
+      </main>
+
+      <footer className="bg-slate-900 text-slate-400 text-xs py-8 border-t border-slate-800 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span className="font-extrabold text-white tracking-widest">PHILIPS</span>
+            <span>|</span>
+            <span>Clinical Innovation Gateway MVP</span>
+          </div>
+          <div>
+            <span>Données stockées localement. Version de démonstration 2026.</span>
+          </div>
+        </div>
+      </footer>
+
+      {/* ============================================== */}
+      {/* 3. SLIDING DRAWER / DETAILS PANEL (EDIT MODE)  */}
+      {/* ============================================== */}
+      {selectedIdea && (
+        <div className="fixed inset-0 z-50 flex justify-end overflow-hidden">
+          
+          <div 
+            onClick={() => setSelectedIdea(null)}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300" 
+          />
+
+          <div className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col h-full z-10 transition-transform duration-300 ease-in-out transform translate-x-0 border-l border-slate-200">
+            
+            {/* Header */}
+            <div className="bg-slate-900 text-white p-6 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  Mode Édition - Orchestrateur
+                </span>
+                <h3 className="font-extrabold text-base mt-1 line-clamp-1 text-white">
+                  {selectedIdea.title}
+                </h3>
+              </div>
+              <button 
+                onClick={() => setSelectedIdea(null)}
+                className="p-1.5 hover:bg-white/10 rounded-lg transition text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Explicit Confirmation Banner inside the drawer */}
+            {showUpdateConfirmation && (
+              <div className="bg-emerald-500 text-white px-6 py-4 flex items-center gap-3 animate-fadeIn shadow-inner">
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <div className="text-left text-xs font-semibold">
+                  Mise à jour réussie ! Le projet a été actualisé et sauvegardé localement.
+                </div>
+                <button 
+                  onClick={() => setShowUpdateConfirmation(false)}
+                  className="ml-auto text-emerald-100 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Form */}
+            <form onSubmit={handleUpdateIdea} className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+              
+              {/* Doctor Profile Info */}
+              <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-xl flex items-center gap-4 text-left">
+                <div className="w-10 h-10 rounded-full bg-philips-blue/10 flex items-center justify-center text-philips-blue shrink-0">
+                  <User className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="block text-xs text-slate-400 font-bold uppercase tracking-wide">Médecin soumissionnaire</span>
+                  <span className="block text-sm font-black text-slate-800">{selectedIdea.piName}</span>
+                  <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                    <Building className="w-3 h-3 text-slate-400 font-bold" />
+                    {selectedIdea.piHospital}
+                  </span>
+                </div>
+              </div>
+
+              {/* Title Input (Editable) */}
+              <div className="text-left">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
+                  <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
+                  Titre de l'idée (Modifiable)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-800 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 bg-white"
+                />
+              </div>
+
+              {/* Categorization & Metadata selectors */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                
+                {/* Modality Selector */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Modalité clinique
+                  </label>
+                  <select
+                    value={editModality}
+                    onChange={(e) => setEditModality(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-700"
+                  >
+                    {MODALITIES.map(mod => (
+                      <option key={mod} value={mod}>{mod}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* BU Selector (Orchestrator exclusive) */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Business Unit Philips
+                  </label>
+                  <select
+                    value={editBusinessUnit}
+                    onChange={(e) => setEditBusinessUnit(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 font-bold"
+                  >
+                    <option value="">Sélectionner BU</option>
+                    {BUSINESS_UNITS.map(bu => (
+                      <option key={bu} value={bu}>{bu}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Status Selector */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                    Statut du projet
+                  </label>
+                  <select
+                    value={editStatus}
+                    onChange={(e) => setEditStatus(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-700"
+                  >
+                    {STATUSES.map(stat => (
+                      <option key={stat} value={stat}>{stat}</option>
+                    ))}
+                  </select>
+                </div>
+
+              </div>
+
+              {/* Editable Clinical Problem */}
+              <div className="text-left">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                    <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
+                    Problème clinique constaté (Modifiable)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-semibold">{editProblem.length}/1500 car.</span>
+                </div>
+                <textarea
+                  maxLength={1500}
+                  rows={6}
+                  value={editProblem}
+                  onChange={(e) => setEditProblem(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none"
+                />
+              </div>
+
+              {/* Editable Proposed Solution */}
+              <div className="text-left">
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+                    <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
+                    Solution technologique proposée (Modifiable)
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-semibold">{editSolution.length}/1500 car.</span>
+                </div>
+                <textarea
+                  maxLength={1500}
+                  rows={6}
+                  value={editSolution}
+                  onChange={(e) => setEditSolution(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none"
+                />
+              </div>
+
+              {/* Attachments List with Download (Orchestrator Panel) */}
+              {selectedIdea.attachments && selectedIdea.attachments.length > 0 && (
+                <div className="text-left bg-slate-50 border border-slate-200/50 p-4 rounded-xl">
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pièces jointes par le médecin (cliquez pour télécharger) :</span>
+                  <div className="space-y-1.5">
+                    {selectedIdea.attachments.map((file, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={(e) => handleDownloadAttachment(e, file)}
+                        className="w-full flex items-center justify-between text-xs text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 p-2.5 rounded-lg transition hover:border-slate-300 font-semibold cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2 truncate max-w-[85%]">
+                          <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                          <span className="truncate">{file.name}</span>
+                          <span className="text-[10px] text-slate-400 font-normal shrink-0">({file.size})</span>
+                        </span>
+                        <Download className="w-4 h-4 text-slate-500 shrink-0 hover:text-philips-blue" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Feedback Philips */}
+              <div className="text-left bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
+                <label className="block text-xs font-bold uppercase tracking-wider text-blue-900/70 mb-2">
+                  Feedback Interne / Externe (Visible par le PI)
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Écrivez vos commentaires sur la faisabilité, les étapes de chiffrage ou la décision finale..."
+                  value={editFeedback}
+                  onChange={(e) => setEditFeedback(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-blue-200 text-xs focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none text-slate-800"
+                />
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex gap-3 pt-4 mt-auto border-t border-slate-100 text-left">
+                <button
+                  type="submit"
+                  className="flex-1 bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-philips-blue/15 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Check className="w-4 h-4" />
+                  Mettre à jour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedIdea(null)}
+                  className="px-5 py-3 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-bold transition cursor-pointer"
+                >
+                  Fermer
+                </button>
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+      )}
+
+    </div>
+  );
+}
