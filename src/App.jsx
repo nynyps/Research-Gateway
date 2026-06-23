@@ -399,7 +399,7 @@ export default function App() {
             options: {
               data: {
                 name: authName,
-                hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
+                hospital: authRole === 'pi' ? authHospital : 'Philips',
                 role: authRole
               }
             }
@@ -407,20 +407,24 @@ export default function App() {
           if (error) throw error;
           
           if (data.user) {
-            // Write user details to profiles table
+            // Sync user details to profiles table
             const { error: profileError } = await supabase
               .from('profiles')
-              .insert([{
+              .upsert([{
                 id: data.user.id,
                 name: authName,
-                hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
+                hospital: authRole === 'pi' ? authHospital : 'Philips',
                 role: authRole
-              }]);
+              }], { onConflict: 'id' });
             if (profileError) {
-              console.warn("Profiles insert warning:", profileError.message);
+              console.warn("Profiles upsert warning:", profileError.message);
             }
           }
-          showToast("Inscription réussie ! Connexion en cours...", "success");
+          if (data.session) {
+            showToast("Compte créé, connexion en cours...", "success");
+          } else {
+            showToast("Compte créé. Si la connexion n'est pas automatique, désactivez la confirmation email dans Supabase.", "info");
+          }
         } catch (err) {
           showToast(err.message || "Erreur lors de l'inscription.", "error");
         } finally {
@@ -821,7 +825,7 @@ export default function App() {
               <p className="text-slate-500 text-xs mb-6">
                 {authMode === 'login' 
                   ? "Connectez-vous pour suivre ou soumettre des projets de recherche et d'innovation cliniques." 
-                  : 'Créez votre compte pour commencer à soumettre ou gérer les idées.'}
+                  : 'Créez un compte utilisateur ou admin, puis utilisez-le directement pour vous connecter.'}
               </p>
 
               {!supabase && (
@@ -849,7 +853,7 @@ export default function App() {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Votre Rôle</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Type de compte</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -860,7 +864,7 @@ export default function App() {
                               : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          PI (Médecin / Praticien)
+                          Utilisateur
                         </button>
                         <button
                           type="button"
@@ -871,7 +875,7 @@ export default function App() {
                               : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          Orchestrateur (Philips R&D)
+                          Admin
                         </button>
                       </div>
                     </div>
@@ -884,7 +888,7 @@ export default function App() {
                           <input
                             type="text"
                             required
-                            placeholder="Hôpital Cochin, AP-HP"
+                            placeholder="HCL - Hospices Civils de Lyon"
                             value={authHospital}
                             onChange={(e) => setAuthHospital(e.target.value)}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white"
@@ -933,37 +937,6 @@ export default function App() {
                 </button>
               </form>
 
-              {supabase && (
-                <div className="mt-8 pt-4 border-t border-slate-100">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Comptes de test rapides :</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthEmail('doctor@hcl.fr');
-                        setAuthPassword('doctor123');
-                        setAuthMode('login');
-                        showToast("Champs remplis pour Dr. Claire Martin (PI - HCL)", "info");
-                      }}
-                      className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                    >
-                      Accès PI HCL
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthEmail('admin@philips.com');
-                        setAuthPassword('admin123');
-                        setAuthMode('login');
-                        showToast("Champs remplis pour l'Orchestrateur (Admin)", "info");
-                      }}
-                      className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                    >
-                      Accès Orchestrateur
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
           </div>
