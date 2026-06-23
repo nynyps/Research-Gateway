@@ -30,7 +30,7 @@ import {
   Mail,
   Lock,
   LogOut,
-  Database
+  Archive
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
@@ -53,6 +53,266 @@ const BUSINESS_UNITS = [
   'CI'
 ];
 
+const LANGUAGE_LABELS = {
+  fr: 'FR',
+  en: 'EN'
+};
+
+const COPY = {
+  fr: {
+    loadingPortal: 'Chargement du portail Philips...',
+    portalSubtitle: "Co-construire la médecine de demain en connectant praticiens cliniques et équipes de recherche et d'innovation Philips.",
+    simpleSubmission: 'Soumission simplifiée',
+    simpleSubmissionCopy: 'Décrivez vos concepts cliniques et importez vos études.',
+    liveTracking: 'Suivi en direct',
+    liveTrackingCopy: "Suivez l'avancement via notre timeline à chaque étape.",
+    directFeedback: 'Feedback direct',
+    directFeedbackCopy: 'Échangez avec les experts R&D de Philips.',
+    versionLabel: 'Version MVP 1.1.0 • Philips HealthTech',
+    portalConnection: 'Connexion Portail',
+    supabaseRequired: 'Supabase requis',
+    signIn: 'Se connecter',
+    createAccount: 'Créer un compte',
+    welcomeBack: 'Bienvenue à nouveau',
+    joinGateway: 'Rejoindre le Gateway',
+    loginIntro: "Connectez-vous pour suivre ou soumettre des projets de recherche et d'innovation cliniques.",
+    signupIntro: 'Créez un compte utilisateur ou admin, puis utilisez-le directement pour vous connecter.',
+    supabaseConfigWarning: 'Supabase doit être configuré pour utiliser le portail. Les comptes, idées, statuts, feedbacks et pièces jointes doivent rester synchronisés entre ordinateurs.',
+    fullName: 'Nom Complet',
+    accountType: 'Type de compte',
+    userAccount: 'Utilisateur',
+    adminAccount: 'Admin',
+    hospitalInstitution: 'Hôpital / Institution',
+    emailAddress: 'Adresse Email',
+    password: 'Mot de passe',
+    createAccess: "Créer l'accès",
+    practitionerSpace: 'Espace Praticien',
+    greeting: 'Bonjour',
+    practitionerFallback: 'Praticien',
+    practitionerWelcome: "Bienvenue sur le portail de recherche et d'innovation clinique Philips de l'",
+    practitionerWelcomeSuffix: ". Soumettez vos idées de dispositifs et solutions numériques pour co-construire la médecine de demain avec nos ingénieurs.",
+    yourInstitution: 'votre établissement',
+    submitIdea: 'Soumettre une idée',
+    describeConcept: 'Décrivez votre concept clinique',
+    ideaTitle: "Titre de l'idée",
+    modalityPhilips: 'Modalité Philips (Imagerie)',
+    selectModality: 'Sélectionner une modalité',
+    clinicalProblem: 'Problème clinique constaté',
+    proposedSolution: 'Solution proposée',
+    attachmentsLabel: 'Pièces jointes (Articles scientifiques, images, études)',
+    clickToAdd: 'Cliquez pour ajouter',
+    dragDrop: 'ou glissez-déposez',
+    submitIdeaButton: "Soumettre l'idée",
+    submittedIdeas: 'Mes idées soumises',
+    archivedIdeas: 'Idées archivées',
+    archivedIdeasList: 'Liste des idées déjà archivées',
+    proposalTracking: 'Suivi de vos propositions',
+    noArchivedIdeas: 'Aucune idée archivée pour le moment.',
+    noSubmittedIdeas: "Vous n'avez pas encore soumis d'idée.",
+    ideaSingular: 'Idée',
+    ideaPluralSuffix: 's',
+    edit: 'Modifier',
+    archive: 'Archiver',
+    fileAttachments: 'Fichiers joints (cliquez pour télécharger) :',
+    progress: 'Avancement du dossier',
+    noFeedbackYet: "Aucun feedback pour le moment. Votre dossier est en cours d'évaluation.",
+    managerSpace: 'Espace Gestionnaire',
+    dashboard: 'Tableau de Bord',
+    totalIdeas: 'Total Idées',
+    inEvaluation: 'En évaluation',
+    approvedPlural: 'Approuvées',
+    searchPlaceholder: 'Rechercher par médecin, mot-clé, feedback...',
+    buFilter: 'Filtre BU :',
+    allBus: 'Toutes les BUs',
+    unassigned: 'Non assignée',
+    all: 'Tous',
+    noIdeaMatches: 'Aucune idée ne correspond à votre recherche.',
+    attachmentCount: 'pièce(s) jointe(s)',
+    buUnassigned: 'BU non assignée',
+    submitterDoctor: 'Médecin soumissionnaire',
+    editModeOrchestrator: 'Mode Édition - Orchestrateur',
+    editModePI: 'Modifier mon idée',
+    updateSuccess: 'Mise à jour réussie.',
+    ideaTitleEditable: "Titre de l'idée (Modifiable)",
+    clinicalModality: 'Modalité clinique',
+    selectBU: 'Sélectionner BU',
+    projectStatus: 'Statut du projet',
+    clinicalProblemEditable: 'Problème clinique constaté (Modifiable)',
+    proposedSolutionEditable: 'Solution technologique proposée (Modifiable)',
+    doctorAttachments: 'Pièces jointes par le médecin (cliquez pour télécharger) :',
+    feedbackVisible: 'Feedback Interne / Externe (Visible par le PI)',
+    feedbackPlaceholder: "Écrivez vos commentaires sur la faisabilité, les étapes de chiffrage ou la décision finale...",
+    update: 'Mettre à jour',
+    close: 'Fermer',
+    saveChanges: 'Enregistrer',
+    footerSync: 'Données synchronisées via Supabase. Version de démonstration 2026.',
+    logoutTitle: 'Se déconnecter',
+    titleRequired: 'Veuillez saisir un titre.',
+    modalityRequired: 'Veuillez sélectionner une modalité Philips.',
+    problemTooLong: 'Le problème clinique dépasse 1500 caractères.',
+    solutionTooLong: 'La solution proposée dépasse 1500 caractères.',
+    ideaSaved: 'Votre idée a été enregistrée en ligne !',
+    ideaSaveError: "Erreur de sauvegarde en ligne.",
+    ideaNotSavedNoSupabase: "Supabase n'est pas configuré. L'idée n'a pas été enregistrée.",
+    loginSuccess: 'Connexion réussie !',
+    loginInvalid: 'Connexion impossible : email ou mot de passe incorrect.',
+    loginError: 'Connexion impossible. Vérifiez vos identifiants.',
+    supabaseLoginMissing: "Supabase n'est pas configuré. Les données doivent être stockées en ligne pour les tests multi-postes.",
+    signupSuccess: 'Compte créé, connexion en cours...',
+    signupConfirmEmail: "Compte créé. Si la connexion n'est pas automatique, désactivez la confirmation email dans Supabase.",
+    signupError: "Erreur lors de l'inscription.",
+    signupMissingSupabase: "Supabase n'est pas configuré. Création de compte impossible sans synchronisation cloud.",
+    logoutSuccess: 'Déconnexion réussie.',
+    syncIdeasError: 'Impossible de synchroniser les idées.',
+    filesAttached: 'fichier(s) joint(s) avec succès.',
+    downloadStarted: 'Téléchargement de',
+    downloadStartedSuffix: 'démarré.',
+    updateTitleRequired: 'Le titre ne peut pas être vide.',
+    updateSaved: 'Mise à jour enregistrée en ligne !',
+    updateError: 'Erreur de mise à jour en ligne.',
+    archiveConfirm: 'Archiver cette idée ? Elle disparaîtra du tableau de bord orchestrateur.',
+    ideaArchived: 'Idée archivée.',
+    ideaUpdated: 'Idée mise à jour.',
+    chars: 'car.',
+    roleOrchestrator: 'Orchestrateur',
+    rolePI: 'PI',
+    unspecified: 'Non spécifié',
+    anonymousDoctor: 'Dr. Anonyme',
+    unknownHospital: 'Hôpital non renseigné',
+    titlePlaceholder: "ex: Système d'alignement guidé par IA...",
+    problemPlaceholder: 'Décrivez la difficulté clinique rencontrée (max 1500 caractères)...',
+    solutionPlaceholder: 'Comment améliorer ou résoudre ce problème techniquement (max 1500 caractères)...',
+    mockFileIntro: 'Ce fichier est une démonstration du MVP Philips Clinical Research & Innovation Gateway.',
+    mockFileServer: 'Dans la version de production, le vrai document serait téléchargé depuis le serveur.'
+  },
+  en: {
+    loadingPortal: 'Loading Philips portal...',
+    portalSubtitle: 'Co-build tomorrow’s medicine by connecting clinical practitioners with Philips research and innovation teams.',
+    simpleSubmission: 'Simple submission',
+    simpleSubmissionCopy: 'Describe clinical concepts and upload supporting studies.',
+    liveTracking: 'Live tracking',
+    liveTrackingCopy: 'Track progress through the timeline at every step.',
+    directFeedback: 'Direct feedback',
+    directFeedbackCopy: 'Exchange with Philips R&D experts.',
+    versionLabel: 'MVP 1.1.0 • Philips HealthTech',
+    portalConnection: 'Portal connection',
+    supabaseRequired: 'Supabase required',
+    signIn: 'Sign in',
+    createAccount: 'Create account',
+    welcomeBack: 'Welcome back',
+    joinGateway: 'Join the Gateway',
+    loginIntro: 'Sign in to track or submit clinical research and innovation projects.',
+    signupIntro: 'Create a user or admin account, then use it directly to sign in.',
+    supabaseConfigWarning: 'Supabase must be configured to use the portal. Accounts, ideas, statuses, feedback, and attachments must stay synchronized across computers.',
+    fullName: 'Full name',
+    accountType: 'Account type',
+    userAccount: 'User',
+    adminAccount: 'Admin',
+    hospitalInstitution: 'Hospital / Institution',
+    emailAddress: 'Email address',
+    password: 'Password',
+    createAccess: 'Create access',
+    practitionerSpace: 'Practitioner Space',
+    greeting: 'Hello',
+    practitionerFallback: 'Practitioner',
+    practitionerWelcome: 'Welcome to the Philips clinical research and innovation portal for ',
+    practitionerWelcomeSuffix: '. Submit medical device and digital solution ideas to co-build tomorrow’s medicine with our engineers.',
+    yourInstitution: 'your institution',
+    submitIdea: 'Submit an idea',
+    describeConcept: 'Describe your clinical concept',
+    ideaTitle: 'Idea title',
+    modalityPhilips: 'Philips modality (Imaging)',
+    selectModality: 'Select a modality',
+    clinicalProblem: 'Observed clinical problem',
+    proposedSolution: 'Proposed solution',
+    attachmentsLabel: 'Attachments (Scientific articles, images, studies)',
+    clickToAdd: 'Click to add',
+    dragDrop: 'or drag and drop',
+    submitIdeaButton: 'Submit idea',
+    submittedIdeas: 'My submitted ideas',
+    archivedIdeas: 'Archived ideas',
+    archivedIdeasList: 'List of archived ideas',
+    proposalTracking: 'Proposal tracking',
+    noArchivedIdeas: 'No archived ideas yet.',
+    noSubmittedIdeas: 'You have not submitted any ideas yet.',
+    ideaSingular: 'Idea',
+    ideaPluralSuffix: 's',
+    edit: 'Edit',
+    archive: 'Archive',
+    fileAttachments: 'Attached files (click to download):',
+    progress: 'Case progress',
+    noFeedbackYet: 'No feedback yet. Your case is being reviewed.',
+    managerSpace: 'Manager Space',
+    dashboard: 'Dashboard',
+    totalIdeas: 'Total ideas',
+    inEvaluation: 'In evaluation',
+    approvedPlural: 'Approved',
+    searchPlaceholder: 'Search by physician, keyword, feedback...',
+    buFilter: 'BU filter:',
+    allBus: 'All BUs',
+    unassigned: 'Unassigned',
+    all: 'All',
+    noIdeaMatches: 'No idea matches your search.',
+    attachmentCount: 'attachment(s)',
+    buUnassigned: 'BU unassigned',
+    submitterDoctor: 'Submitting physician',
+    editModeOrchestrator: 'Edit Mode - Orchestrator',
+    editModePI: 'Edit my idea',
+    updateSuccess: 'Update successful.',
+    ideaTitleEditable: 'Idea title (Editable)',
+    clinicalModality: 'Clinical modality',
+    selectBU: 'Select BU',
+    projectStatus: 'Project status',
+    clinicalProblemEditable: 'Observed clinical problem (Editable)',
+    proposedSolutionEditable: 'Proposed technical solution (Editable)',
+    doctorAttachments: 'Files attached by the physician (click to download):',
+    feedbackVisible: 'Internal / External feedback (Visible to the PI)',
+    feedbackPlaceholder: 'Write comments on feasibility, resource sizing steps, or the final decision...',
+    update: 'Update',
+    close: 'Close',
+    saveChanges: 'Save changes',
+    footerSync: 'Data synchronized via Supabase. Demo version 2026.',
+    logoutTitle: 'Sign out',
+    titleRequired: 'Please enter a title.',
+    modalityRequired: 'Please select a Philips modality.',
+    problemTooLong: 'The clinical problem exceeds 1500 characters.',
+    solutionTooLong: 'The proposed solution exceeds 1500 characters.',
+    ideaSaved: 'Your idea was saved online!',
+    ideaSaveError: 'Online save error.',
+    ideaNotSavedNoSupabase: 'Supabase is not configured. The idea was not saved.',
+    loginSuccess: 'Signed in successfully!',
+    loginInvalid: 'Sign-in failed: email or password is incorrect.',
+    loginError: 'Sign-in failed. Check your credentials.',
+    supabaseLoginMissing: 'Supabase is not configured. Data must be stored online for multi-computer testing.',
+    signupSuccess: 'Account created, signing in...',
+    signupConfirmEmail: 'Account created. If sign-in is not automatic, disable email confirmation in Supabase.',
+    signupError: 'Sign-up error.',
+    signupMissingSupabase: 'Supabase is not configured. Account creation is unavailable without cloud sync.',
+    logoutSuccess: 'Signed out.',
+    syncIdeasError: 'Unable to sync ideas.',
+    filesAttached: 'file(s) attached successfully.',
+    downloadStarted: 'Download of',
+    downloadStartedSuffix: 'started.',
+    updateTitleRequired: 'Title cannot be empty.',
+    updateSaved: 'Update saved online!',
+    updateError: 'Online update error.',
+    archiveConfirm: 'Archive this idea? It will disappear from the orchestrator dashboard.',
+    ideaArchived: 'Idea archived.',
+    ideaUpdated: 'Idea updated.',
+    chars: 'chars',
+    roleOrchestrator: 'Orchestrator',
+    rolePI: 'PI',
+    unspecified: 'Not specified',
+    anonymousDoctor: 'Anonymous physician',
+    unknownHospital: 'Hospital not provided',
+    titlePlaceholder: 'e.g. AI-guided alignment system...',
+    problemPlaceholder: 'Describe the clinical difficulty encountered (max 1500 characters)...',
+    solutionPlaceholder: 'How could this problem be improved or solved technically (max 1500 characters)...',
+    mockFileIntro: 'This file is a demo document from the Philips Clinical Research & Innovation Gateway MVP.',
+    mockFileServer: 'In production, the real document would be downloaded from the server.'
+  }
+};
+
 // Status list
 const STATUSES = [
   'Soumis', 
@@ -63,17 +323,72 @@ const STATUSES = [
   'Archivé'
 ];
 
+const STATUS_LABELS = {
+  fr: {
+    'Soumis': 'Soumis',
+    'En évaluation': 'En évaluation',
+    'Chiffrage Ressources': 'Chiffrage Ressources',
+    'Arbitrage Philips': 'Arbitrage Philips',
+    'Approuvé': 'Approuvé',
+    'Archivé': 'Archivé'
+  },
+  en: {
+    'Soumis': 'Submitted',
+    'En évaluation': 'In evaluation',
+    'Chiffrage Ressources': 'Resource sizing',
+    'Arbitrage Philips': 'Philips arbitration',
+    'Approuvé': 'Approved',
+    'Archivé': 'Archived'
+  }
+};
+
+const STATUS_SHORT_LABELS = {
+  fr: {
+    'Soumis': 'Soumis',
+    'En évaluation': 'Éval.',
+    'Chiffrage Ressources': 'Chiffr.',
+    'Arbitrage Philips': 'Arbit.',
+    'Approuvé': 'Approuvé'
+  },
+  en: {
+    'Soumis': 'Subm.',
+    'En évaluation': 'Eval.',
+    'Chiffrage Ressources': 'Sizing',
+    'Arbitrage Philips': 'Arb.',
+    'Approuvé': 'Approved'
+  }
+};
+
+const MODALITY_LABELS = {
+  fr: {
+    'IRM': 'IRM',
+    'CT': 'CT',
+    'Échographie': 'Échographie',
+    'Monitorage': 'Monitorage',
+    'Image-Guided Therapy': 'Image-Guided Therapy',
+    'Autre': 'Autre'
+  },
+  en: {
+    'IRM': 'MRI',
+    'CT': 'CT',
+    'Échographie': 'Ultrasound',
+    'Monitorage': 'Monitoring',
+    'Image-Guided Therapy': 'Image-Guided Therapy',
+    'Autre': 'Other'
+  }
+};
+
 // Funnel steps for the PI timeline (excludes 'Archivé' which is a side-track)
 const FUNNEL_STEPS = [
-  { key: 'Soumis', label: 'Soumis', shortLabel: 'Soumis' },
-  { key: 'En évaluation', label: 'Évaluation', shortLabel: 'Éval.' },
-  { key: 'Chiffrage Ressources', label: 'Chiffrage', shortLabel: 'Chiffr.' },
-  { key: 'Arbitrage Philips', label: 'Arbitrage', shortLabel: 'Arbit.' },
-  { key: 'Approuvé', label: 'Approuvé', shortLabel: 'Approuvé' }
+  { key: 'Soumis' },
+  { key: 'En évaluation' },
+  { key: 'Chiffrage Ressources' },
+  { key: 'Arbitrage Philips' },
+  { key: 'Approuvé' }
 ];
 
 // Visual funnel timeline component for PI idea cards
-const FunnelTimeline = ({ currentStatus }) => {
+const FunnelTimeline = ({ currentStatus, lang }) => {
   const isArchived = currentStatus === 'Archivé';
   const currentIndex = FUNNEL_STEPS.findIndex(s => s.key === currentStatus);
 
@@ -90,7 +405,7 @@ const FunnelTimeline = ({ currentStatus }) => {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-semibold text-rose-700">
         <X className="w-3.5 h-3.5" />
-        Idée archivée
+        {STATUS_LABELS[lang]['Archivé']}
       </div>
     );
   }
@@ -130,8 +445,8 @@ const FunnelTimeline = ({ currentStatus }) => {
                     : 'text-slate-300'
                 }`}
               >
-                <span className="hidden sm:inline">{step.label}</span>
-                <span className="sm:hidden">{step.shortLabel}</span>
+                <span className="hidden sm:inline">{STATUS_LABELS[lang][step.key]}</span>
+                <span className="sm:hidden">{STATUS_SHORT_LABELS[lang][step.key]}</span>
               </span>
             </div>
 
@@ -231,8 +546,10 @@ const mapSupabaseIdea = (item) => ({
 });
 
 export default function App() {
+  const [lang, setLang] = useState('fr');
   const [user, setUser] = useState(null); // { id, email, name, hospital, role }
   const [authLoading, setAuthLoading] = useState(() => Boolean(supabase));
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   
   // Auth Form States
@@ -244,6 +561,10 @@ export default function App() {
 
   // Dynamic role matching current user (default 'pi' if not logged in)
   const role = user ? user.role : 'pi';
+  const t = useCallback((key) => COPY[lang][key] || COPY.fr[key] || key, [lang]);
+  const statusLabel = useCallback((status) => STATUS_LABELS[lang][status] || status, [lang]);
+  const modalityLabel = useCallback((modality) => MODALITY_LABELS[lang][modality] || modality, [lang]);
+  const dateLocale = lang === 'fr' ? 'fr-FR' : 'en-US';
   
   const [ideas, setIdeas] = useState([]);
 
@@ -295,9 +616,9 @@ export default function App() {
       setIdeas(data.map(mapSupabaseIdea));
     } catch (err) {
       console.error("Error fetching ideas:", err);
-      showToast("Impossible de synchroniser les idées.", "error");
+      showToast(t('syncIdeasError'), "error");
     }
-  }, [showToast]);
+  }, [showToast, t]);
 
   const fetchSupabaseProfile = useCallback(async (supabaseUser) => {
     try {
@@ -320,8 +641,8 @@ export default function App() {
         setUser({
           id: supabaseUser.id,
           email: supabaseUser.email,
-          name: meta.name || 'Utilisateur',
-          hospital: meta.hospital || 'Non spécifié',
+          name: meta.name || t('userAccount'),
+          hospital: meta.hospital || t('unspecified'),
           role: meta.role || 'pi'
         });
       }
@@ -331,15 +652,15 @@ export default function App() {
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email,
-        name: meta.name || 'Utilisateur',
-        hospital: meta.hospital || 'Non spécifié',
+        name: meta.name || t('userAccount'),
+        hospital: meta.hospital || t('unspecified'),
         role: meta.role || 'pi'
       });
     } finally {
       await fetchIdeasFromSupabase();
       setAuthLoading(false);
     }
-  }, [fetchIdeasFromSupabase]);
+  }, [fetchIdeasFromSupabase, t]);
 
   // 1. Session check on Mount (Supabase)
   useEffect(() => {
@@ -366,35 +687,54 @@ export default function App() {
     }
   }, [fetchSupabaseProfile]);
 
+  useEffect(() => {
+    if (!user) return;
+
+    if (window.location.hash !== '#app') {
+      window.history.pushState({ gatewayView: 'app' }, '', '#app');
+    }
+
+    const handleBackToLogin = () => {
+      if (window.location.hash === '#app') return;
+      supabase?.auth.signOut();
+      setUser(null);
+      setIdeas([]);
+      setSelectedIdea(null);
+    };
+
+    window.addEventListener('popstate', handleBackToLogin);
+    return () => window.removeEventListener('popstate', handleBackToLogin);
+  }, [user]);
+
   // Auth Submit Handlers
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     if (authMode === 'login') {
       if (supabase) {
         // Real Supabase Sign In
-        setAuthLoading(true);
+        setAuthSubmitting(true);
         try {
           const { error } = await supabase.auth.signInWithPassword({
             email: authEmail,
             password: authPassword
           });
           if (error) throw error;
-          showToast("Connexion réussie !", "success");
+          showToast(t('loginSuccess'), "success");
         } catch (err) {
           const message = err.message?.toLowerCase().includes('invalid login credentials')
-            ? "Connexion impossible : email ou mot de passe incorrect."
-            : "Connexion impossible. Vérifiez vos identifiants.";
+            ? t('loginInvalid')
+            : t('loginError');
           showToast(message, "error");
         } finally {
-          setAuthLoading(false);
+          setAuthSubmitting(false);
         }
       } else {
-        showToast("Supabase n'est pas configuré. Les données doivent être stockées en ligne pour les tests multi-postes.", "error");
+        showToast(t('supabaseLoginMissing'), "error");
       }
     } else {
       if (supabase) {
         // Real Supabase Sign Up
-        setAuthLoading(true);
+        setAuthSubmitting(true);
         try {
           const { data, error } = await supabase.auth.signUp({
             email: authEmail,
@@ -424,17 +764,17 @@ export default function App() {
             }
           }
           if (data.session) {
-            showToast("Compte créé, connexion en cours...", "success");
+            showToast(t('signupSuccess'), "success");
           } else {
-            showToast("Compte créé. Si la connexion n'est pas automatique, désactivez la confirmation email dans Supabase.", "info");
+            showToast(t('signupConfirmEmail'), "info");
           }
         } catch (err) {
-          showToast(err.message || "Erreur lors de l'inscription.", "error");
+          showToast(err.message || t('signupError'), "error");
         } finally {
-          setAuthLoading(false);
+          setAuthSubmitting(false);
         }
       } else {
-        showToast("Supabase n'est pas configuré. Création de compte impossible sans synchronisation cloud.", "error");
+        showToast(t('signupMissingSupabase'), "error");
       }
     }
   };
@@ -446,7 +786,8 @@ export default function App() {
       setIdeas([]);
     }
     setSelectedIdea(null);
-    showToast("Déconnexion réussie.", "info");
+    window.history.replaceState(null, '', window.location.pathname);
+    showToast(t('logoutSuccess'), "info");
   };
 
   // Dashboard calculations for orchestrator
@@ -476,7 +817,7 @@ export default function App() {
         loaded++;
         if (loaded === files.length) {
           setTempAttachments(prev => [...prev, ...results]);
-          showToast(`${files.length} fichier(s) joint(s) avec succès.`, 'info');
+          showToast(`${files.length} ${t('filesAttached')}`, 'info');
         }
       };
       reader.readAsDataURL(file);
@@ -507,8 +848,8 @@ export default function App() {
         `===================================\n` +
         `Fichier : ${file.name}\n` +
         `Taille  : ${file.size || 'N/A'}\n\n` +
-        `Ce fichier est une démonstration du MVP Philips Clinical Research & Innovation Gateway.\n` +
-        `Dans la version de production, le vrai document serait téléchargé depuis le serveur.`;
+        `${t('mockFileIntro')}\n` +
+        t('mockFileServer');
       const blob = new Blob([mockContent], { type: 'text/plain;charset=utf-8' });
       downloadUrl = URL.createObjectURL(blob);
       needsRevoke = true;
@@ -524,7 +865,7 @@ export default function App() {
     if (needsRevoke) {
       setTimeout(() => URL.revokeObjectURL(downloadUrl), 100);
     }
-    showToast(`Téléchargement de "${file.name}" démarré.`, 'success');
+    showToast(`${t('downloadStarted')} "${file.name}" ${t('downloadStartedSuffix')}`, 'success');
   };
 
   // PI Submission Handler
@@ -532,19 +873,19 @@ export default function App() {
     e.preventDefault();
     
     if (!newTitle.trim()) {
-      showToast("Veuillez saisir un titre.", "error");
+      showToast(t('titleRequired'), "error");
       return;
     }
     if (!newModality) {
-      showToast("Veuillez sélectionner une modalité Philips.", "error");
+      showToast(t('modalityRequired'), "error");
       return;
     }
     if (newProblem.length > 1500) {
-      showToast("Le problème clinique dépasse 1500 caractères.", "error");
+      showToast(t('problemTooLong'), "error");
       return;
     }
     if (newSolution.length > 1500) {
-      showToast("La solution proposée dépasse 1500 caractères.", "error");
+      showToast(t('solutionTooLong'), "error");
       return;
     }
 
@@ -559,8 +900,8 @@ export default function App() {
       modality: newModality,
       businessUnit: '', // Starts empty, to be assigned by Orchestrator
       status: 'Soumis',
-      piName: user?.name || 'Dr. Anonyme',
-      piHospital: user?.hospital || 'Hôpital non renseigné',
+      piName: user?.name || t('anonymousDoctor'),
+      piHospital: user?.hospital || t('unknownHospital'),
       piEmail: user?.email || 'anon@example.com',
       submittedAt,
       feedback: '',
@@ -592,13 +933,13 @@ export default function App() {
         if (error) throw error;
 
         setIdeas([newIdea, ...ideas]);
-        showToast("Votre idée a été enregistrée en ligne !", "success");
+        showToast(t('ideaSaved'), "success");
       } catch (err) {
         console.error("Error saving idea to Supabase:", err);
-        showToast(err.message || "Erreur de sauvegarde en ligne.", "error");
+        showToast(err.message || t('ideaSaveError'), "error");
       }
     } else {
-      showToast("Supabase n'est pas configuré. L'idée n'a pas été enregistrée.", "error");
+      showToast(t('ideaNotSavedNoSupabase'), "error");
       return;
     }
     
@@ -616,25 +957,33 @@ export default function App() {
     if (!selectedIdea) return;
 
     if (!editTitle.trim()) {
-      showToast("Le titre ne peut pas être vide.", "error");
+      showToast(t('updateTitleRequired'), "error");
       return;
     }
 
+    const isPIEditor = role === 'pi';
     const updatedFields = {
       title: editTitle,
       problem: editProblem,
       solution: editSolution,
       modality: editModality,
-      status: editStatus,
-      feedback: editFeedback,
-      businessUnit: editBusinessUnit
+      ...(isPIEditor ? {} : {
+        status: editStatus,
+        feedback: editFeedback,
+        businessUnit: editBusinessUnit
+      })
     };
 
     if (supabase) {
       try {
-        const { error } = await supabase
+        let query = supabase
           .from('ideas')
-          .update({
+          .update(isPIEditor ? {
+            title: editTitle,
+            problem: editProblem,
+            solution: editSolution,
+            modality: editModality
+          } : {
             title: editTitle,
             problem: editProblem,
             solution: editSolution,
@@ -645,12 +994,18 @@ export default function App() {
           })
           .eq('id', selectedIdea.id);
 
+        if (isPIEditor) {
+          query = query.or(`user_id.eq.${user?.id},pi_email.eq.${user?.email}`);
+        }
+
+        const { error } = await query;
+
         if (error) throw error;
 
-        showToast("Mise à jour enregistrée en ligne !", "success");
+        showToast(isPIEditor ? t('ideaUpdated') : t('updateSaved'), "success");
       } catch (err) {
         console.error("Error updating idea in Supabase:", err);
-        showToast(err.message || "Erreur de mise à jour en ligne.", "error");
+        showToast(err.message || t('updateError'), "error");
         return;
       }
     }
@@ -679,6 +1034,34 @@ export default function App() {
     setTimeout(() => {
       setShowUpdateConfirmation(false);
     }, 4000);
+  };
+
+  const handleArchiveIdea = async (idea) => {
+    if (!idea || !window.confirm(t('archiveConfirm'))) return;
+
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('ideas')
+          .update({ status: 'Archivé' })
+          .eq('id', idea.id)
+          .or(`user_id.eq.${user?.id},pi_email.eq.${user?.email}`);
+
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error archiving idea in Supabase:", err);
+        showToast(err.message || t('updateError'), "error");
+        return;
+      }
+    }
+
+    setIdeas(prev => prev.map(item => (
+      item.id === idea.id ? { ...item, status: 'Archivé' } : item
+    )));
+    if (selectedIdea?.id === idea.id) {
+      setSelectedIdea(prev => prev ? { ...prev, status: 'Archivé' } : prev);
+    }
+    showToast(t('ideaArchived'), "success");
   };
 
   // Select idea to view details & initialize drawer inputs
@@ -726,7 +1109,7 @@ export default function App() {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center font-sans">
         <div className="flex flex-col items-center gap-4">
           <div className="w-10 h-10 border-4 border-slate-200 border-t-philips-blue rounded-full animate-spin"></div>
-          <p className="text-slate-500 font-semibold text-sm tracking-wide">Chargement du portail Philips...</p>
+          <p className="text-slate-500 font-semibold text-sm tracking-wide">{t('loadingPortal')}</p>
         </div>
       </div>
     );
@@ -753,31 +1136,29 @@ export default function App() {
               
               <div className="space-y-2">
                 <h2 className="text-2xl font-black leading-tight tracking-tight text-white">Clinical Research & Innovation Gateway</h2>
-                <p className="text-slate-200 text-xs leading-relaxed">
-                  Co-construire la médecine de demain en connectant praticiens cliniques et équipes de recherche et d'innovation Philips.
-                </p>
+                <p className="text-slate-200 text-xs leading-relaxed">{t('portalSubtitle')}</p>
               </div>
 
               <div className="space-y-3 pt-4 border-t border-white/10">
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="text-xs">
-                    <span className="font-bold block">Soumission simplifiée</span>
-                    <span className="text-slate-300">Décrivez vos concepts cliniques et importez vos études.</span>
+                    <span className="font-bold block">{t('simpleSubmission')}</span>
+                    <span className="text-slate-300">{t('simpleSubmissionCopy')}</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="text-xs">
-                    <span className="font-bold block">Suivi en direct</span>
-                    <span className="text-slate-300">Suivez l'avancement via notre timeline à chaque étape.</span>
+                    <span className="font-bold block">{t('liveTracking')}</span>
+                    <span className="text-slate-300">{t('liveTrackingCopy')}</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-2.5">
                   <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400 shrink-0 mt-0.5" />
                   <div className="text-xs">
-                    <span className="font-bold block">Feedback direct</span>
-                    <span className="text-slate-300">Échangez avec les experts R&D de Philips.</span>
+                    <span className="font-bold block">{t('directFeedback')}</span>
+                    <span className="text-slate-300">{t('directFeedbackCopy')}</span>
                   </div>
                 </div>
               </div>
@@ -785,25 +1166,28 @@ export default function App() {
 
             <div className="text-[10px] text-slate-400 mt-8 border-t border-white/10 pt-4 flex items-center gap-1.5">
               <Info className="w-3.5 h-3.5" />
-              <span>Version MVP 1.1.0 • Philips HealthTech</span>
+              <span>{t('versionLabel')}</span>
             </div>
           </div>
 
           {/* Right Column: Form */}
           <div className="md:col-span-7 p-8 flex flex-col justify-between text-left">
             <div>
-              {/* Database Status Badge */}
-              <div className="flex items-center justify-between mb-6">
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Connexion Portail</span>
-                {supabase ? (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-[10px] font-bold border border-emerald-200">
-                    <Database className="w-3 h-3" /> Mode Cloud (Supabase)
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-red-50 text-red-700 rounded-full text-[10px] font-bold border border-red-200">
-                    <AlertCircle className="w-3 h-3" /> Supabase requis
-                  </span>
-                )}
+              <div className="flex justify-end mb-6">
+                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+                  {Object.keys(LANGUAGE_LABELS).map(code => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => setLang(code)}
+                      className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition ${
+                        lang === code ? 'bg-white text-philips-blue shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      {LANGUAGE_LABELS[code]}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Form Mode Selector */}
@@ -814,7 +1198,7 @@ export default function App() {
                     authMode === 'login' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Se connecter
+                  {t('signIn')}
                 </button>
                 <button
                   onClick={() => { setAuthMode('signup'); }}
@@ -822,22 +1206,22 @@ export default function App() {
                     authMode === 'signup' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  Créer un compte
+                  {t('createAccount')}
                 </button>
               </div>
 
               <h3 className="text-xl font-extrabold text-slate-800 tracking-tight mb-2">
-                {authMode === 'login' ? 'Bienvenue à nouveau' : 'Rejoindre le Gateway'}
+                {authMode === 'login' ? t('welcomeBack') : t('joinGateway')}
               </h3>
               <p className="text-slate-500 text-xs mb-6">
                 {authMode === 'login' 
-                  ? "Connectez-vous pour suivre ou soumettre des projets de recherche et d'innovation cliniques." 
-                  : 'Créez un compte utilisateur ou admin, puis utilisez-le directement pour vous connecter.'}
+                  ? t('loginIntro')
+                  : t('signupIntro')}
               </p>
 
               {!supabase && (
                 <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 leading-relaxed">
-                  Supabase doit être configuré pour utiliser le portail. Les comptes, idées, statuts, feedbacks et pièces jointes doivent rester synchronisés entre ordinateurs.
+                  {t('supabaseConfigWarning')}
                 </div>
               )}
 
@@ -845,7 +1229,7 @@ export default function App() {
                 {authMode === 'signup' && (
                   <>
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Nom Complet</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('fullName')}</label>
                       <div className="relative">
                         <User className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                         <input
@@ -860,7 +1244,7 @@ export default function App() {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Type de compte</label>
+                      <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('accountType')}</label>
                       <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
@@ -871,7 +1255,7 @@ export default function App() {
                               : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          Utilisateur
+                          {t('userAccount')}
                         </button>
                         <button
                           type="button"
@@ -882,14 +1266,14 @@ export default function App() {
                               : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                           }`}
                         >
-                          Admin
+                          {t('adminAccount')}
                         </button>
                       </div>
                     </div>
 
                     {authRole === 'pi' && (
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Hôpital / Institution</label>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('hospitalInstitution')}</label>
                         <div className="relative">
                           <Building className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                           <input
@@ -907,7 +1291,7 @@ export default function App() {
                 )}
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Adresse Email</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('emailAddress')}</label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                     <input
@@ -922,7 +1306,7 @@ export default function App() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">Mot de passe</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">{t('password')}</label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
                     <input
@@ -938,9 +1322,10 @@ export default function App() {
 
                 <button
                   type="submit"
-                  className="w-full bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-xs font-bold tracking-wide shadow-md shadow-philips-blue/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  disabled={authSubmitting}
+                  className="w-full bg-philips-blue hover:bg-philips-accent disabled:bg-slate-300 disabled:shadow-none text-white py-3 rounded-xl text-xs font-bold tracking-wide shadow-md shadow-philips-blue/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center gap-2 cursor-pointer disabled:cursor-not-allowed mt-2"
                 >
-                  {authMode === 'login' ? 'Se connecter' : "Créer l'accès"}
+                  {authSubmitting ? '...' : (authMode === 'login' ? t('signIn') : t('createAccess'))}
                 </button>
               </form>
 
@@ -998,6 +1383,20 @@ export default function App() {
 
           {/* User Profile Info */}
           <div className="flex items-center gap-3">
+            <div className="hidden sm:flex rounded-lg border border-slate-200 bg-slate-50 p-0.5">
+              {Object.keys(LANGUAGE_LABELS).map(code => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLang(code)}
+                  className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition ${
+                    lang === code ? 'bg-white text-philips-blue shadow-sm' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {LANGUAGE_LABELS[code]}
+                </button>
+              ))}
+            </div>
             
             {/* Profile Tag */}
             <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200/50 pl-3 pr-4 py-1.5 rounded-full">
@@ -1007,7 +1406,7 @@ export default function App() {
               <div className="text-left leading-tight">
                 <span className="block text-xs font-bold text-slate-800 truncate max-w-[120px]">{user?.name}</span>
                 <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                  {user?.role === 'orchestrator' ? 'Orchestrateur' : 'PI'}
+                  {user?.role === 'orchestrator' ? t('roleOrchestrator') : t('rolePI')}
                 </span>
               </div>
             </div>
@@ -1015,7 +1414,7 @@ export default function App() {
             {/* Logout button */}
             <button
               onClick={handleSignOut}
-              title="Se déconnecter"
+              title={t('logoutTitle')}
               className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-full transition duration-200 cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
@@ -1041,11 +1440,11 @@ export default function App() {
               <div className="relative z-10 max-w-2xl text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold tracking-wide mb-4 border border-white/10">
                   <User className="w-3.5 h-3.5 text-philips-light-blue" />
-                  Espace Praticien
+                  {t('practitionerSpace')}
                 </div>
-                <h2 className="text-3xl font-extrabold tracking-tight">Bonjour, {user?.name || 'Praticien'}</h2>
+                <h2 className="text-3xl font-extrabold tracking-tight">{t('greeting')}, {user?.name || t('practitionerFallback')}</h2>
                 <p className="text-slate-200 mt-2 text-sm leading-relaxed text-left">
-                  Bienvenue sur le portail de recherche et d'innovation clinique Philips de l'<strong>{user?.hospital || 'votre établissement'}</strong>. Soumettez vos idées de dispositifs et solutions numériques pour co-construire la médecine de demain avec nos ingénieurs.
+                  {t('practitionerWelcome')}<strong>{user?.hospital || t('yourInstitution')}</strong>{t('practitionerWelcomeSuffix')}
                 </p>
               </div>
             </div>
@@ -1059,8 +1458,8 @@ export default function App() {
                     <PlusCircle className="w-5 h-5" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-slate-800 text-base">Soumettre une idée</h3>
-                    <p className="text-slate-400 text-xs mt-0.5">Décrivez votre concept clinique</p>
+                    <h3 className="font-bold text-slate-800 text-base">{t('submitIdea')}</h3>
+                    <p className="text-slate-400 text-xs mt-0.5">{t('describeConcept')}</p>
                   </div>
                 </div>
 
@@ -1068,12 +1467,12 @@ export default function App() {
                   
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      Titre de l'idée
+                      {t('ideaTitle')}
                     </label>
                     <input
                       type="text"
                       required
-                      placeholder="ex: Système d'alignement guidé par IA..."
+                      placeholder={t('titlePlaceholder')}
                       value={newTitle}
                       onChange={(e) => setNewTitle(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200"
@@ -1082,7 +1481,7 @@ export default function App() {
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      Modalité Philips (Imagerie)
+                      {t('modalityPhilips')}
                     </label>
                     <select
                       required
@@ -1092,9 +1491,9 @@ export default function App() {
                         newModality ? 'text-slate-800' : 'text-slate-400'
                       }`}
                     >
-                      <option value="" disabled>Sélectionner une modalité</option>
+                      <option value="" disabled>{t('selectModality')}</option>
                       {MODALITIES.map((mod) => (
-                        <option key={mod} value={mod}>{mod}</option>
+                        <option key={mod} value={mod}>{modalityLabel(mod)}</option>
                       ))}
                     </select>
                   </div>
@@ -1102,20 +1501,20 @@ export default function App() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Problème clinique constaté
+                        {t('clinicalProblem')}
                       </label>
                       <span className={`text-[10px] font-medium ${
                         newProblem.length > 1400 ? 'text-red-500 font-bold' : 
                         newProblem.length > 1100 ? 'text-amber-500' : 'text-slate-400'
                       }`}>
-                        {newProblem.length}/1500 car.
+                        {newProblem.length}/1500 {t('chars')}
                       </span>
                     </div>
                     <textarea
                       required
                       maxLength={1500}
                       rows={5}
-                      placeholder="Décrivez la difficulté clinique rencontrée (max 1500 caractères)..."
+                      placeholder={t('problemPlaceholder')}
                       value={newProblem}
                       onChange={(e) => setNewProblem(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 resize-none text-slate-700"
@@ -1125,20 +1524,20 @@ export default function App() {
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label className="block text-xs font-bold uppercase tracking-wider text-slate-500">
-                        Solution proposée
+                        {t('proposedSolution')}
                       </label>
                       <span className={`text-[10px] font-medium ${
                         newSolution.length > 1400 ? 'text-red-500 font-bold' : 
                         newSolution.length > 1100 ? 'text-amber-500' : 'text-slate-400'
                       }`}>
-                        {newSolution.length}/1500 car.
+                        {newSolution.length}/1500 {t('chars')}
                       </span>
                     </div>
                     <textarea
                       required
                       maxLength={1500}
                       rows={5}
-                      placeholder="Comment améliorer ou résoudre ce problème techniquement (max 1500 caractères)..."
+                      placeholder={t('solutionPlaceholder')}
                       value={newSolution}
                       onChange={(e) => setNewSolution(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 resize-none text-slate-700"
@@ -1148,13 +1547,13 @@ export default function App() {
                   {/* Attachment section */}
                   <div className="p-4 bg-slate-50 border border-slate-200/50 rounded-xl">
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
-                      Pièces jointes (Articles scientifiques, images, études)
+                      {t('attachmentsLabel')}
                     </label>
                     <div className="flex items-center justify-center w-full">
                       <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-slate-300 border-dashed rounded-xl cursor-pointer hover:bg-slate-100 hover:border-slate-400 transition-all duration-200">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Paperclip className="w-5 h-5 text-slate-400 mb-1" />
-                          <p className="text-xs text-slate-500"><span className="font-semibold">Cliquez pour ajouter</span> ou glissez-déposez</p>
+                          <p className="text-xs text-slate-500"><span className="font-semibold">{t('clickToAdd')}</span> {t('dragDrop')}</p>
                         </div>
                         <input 
                           type="file" 
@@ -1193,7 +1592,7 @@ export default function App() {
                     className="w-full bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-sm font-bold tracking-wide shadow-md shadow-philips-blue/10 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <PlusCircle className="w-4 h-4" />
-                    Soumettre l'idée
+                    {t('submitIdeaButton')}
                   </button>
 
                 </form>
@@ -1212,7 +1611,7 @@ export default function App() {
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    Mes idées soumises
+                    {t('submittedIdeas')}
                   </button>
                   <button
                     onClick={() => setIdeaTab('archived')}
@@ -1222,21 +1621,21 @@ export default function App() {
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                     }`}
                   >
-                    Idées archivées
+                    {t('archivedIdeas')}
                   </button>
                 </div>
 
                 <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                   <div>
                     <h3 className="font-bold text-slate-800 text-base">
-                      {ideaTab === 'archived' ? 'Idées archivées' : 'Mes idées soumises'}
+                      {ideaTab === 'archived' ? t('archivedIdeas') : t('submittedIdeas')}
                     </h3>
                     <p className="text-slate-400 text-xs mt-0.5 leading-relaxed">
-                      {ideaTab === 'archived' ? 'Liste des idées déjà archivées' : 'Suivi de vos propositions'}
+                      {ideaTab === 'archived' ? t('archivedIdeasList') : t('proposalTracking')}
                     </p>
                   </div>
                   <span className="px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">
-                    {filteredPIIdeas.length} Idée{filteredPIIdeas.length !== 1 ? 's' : ''}
+                    {filteredPIIdeas.length} {t('ideaSingular')}{filteredPIIdeas.length !== 1 ? t('ideaPluralSuffix') : ''}
                   </span>
                 </div>
 
@@ -1244,7 +1643,7 @@ export default function App() {
                   <div className="bg-white rounded-2xl p-12 text-center border border-slate-100 shadow-premium">
                     <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <p className="text-slate-500 font-medium text-sm">
-                      {ideaTab === 'archived' ? "Aucune idée archivée pour le moment." : "Vous n'avez pas encore soumis d'idée."}
+                      {ideaTab === 'archived' ? t('noArchivedIdeas') : t('noSubmittedIdeas')}
                     </p>
                   </div>
                 ) : (
@@ -1261,7 +1660,7 @@ export default function App() {
                             <div>
                               <span className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
                                 <Calendar className="w-3 h-3" />
-                                {new Date(idea.submittedAt).toLocaleDateString('fr-FR', {
+                                {new Date(idea.submittedAt).toLocaleDateString(dateLocale, {
                                   day: '2-digit', month: 'short', year: 'numeric'
                                 })}
                               </span>
@@ -1273,21 +1672,39 @@ export default function App() {
                             <div className="flex items-center gap-2 shrink-0">
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-50 border border-slate-200/50 rounded-full text-xs font-semibold text-slate-700">
                                 {getModalityIcon(idea.modality)}
-                                {idea.modality}
+                                {modalityLabel(idea.modality)}
                               </span>
+                              <button
+                                type="button"
+                                onClick={() => openDetails(idea)}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:border-philips-blue hover:text-philips-blue rounded-full text-xs font-bold text-slate-600 transition"
+                              >
+                                <Edit3 className="w-3 h-3" />
+                                {t('edit')}
+                              </button>
+                              {idea.status !== 'Archivé' && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleArchiveIdea(idea)}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:border-rose-300 hover:text-rose-700 rounded-full text-xs font-bold text-slate-600 transition"
+                                >
+                                  <Archive className="w-3 h-3" />
+                                  {t('archive')}
+                                </button>
+                              )}
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mt-3 bg-slate-50/50 p-4 rounded-xl border border-slate-100">
                             <div>
                               <span className="block font-bold text-slate-500 uppercase tracking-wider mb-1 text-slate-400">
-                                Problème clinique
+                                {t('clinicalProblem')}
                               </span>
                               <p className="text-slate-700 line-clamp-4 leading-relaxed whitespace-pre-wrap">{idea.problem}</p>
                             </div>
                             <div>
                               <span className="block font-bold text-slate-500 uppercase tracking-wider mb-1 text-slate-400">
-                                Solution proposée
+                                {t('proposedSolution')}
                               </span>
                               <p className="text-slate-700 line-clamp-4 leading-relaxed whitespace-pre-wrap">{idea.solution}</p>
                             </div>
@@ -1295,14 +1712,14 @@ export default function App() {
 
                           {/* Funnel Timeline */}
                           <div className="mt-4 p-3 bg-slate-50/80 border border-slate-100 rounded-xl">
-                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Avancement du dossier</span>
-                            <FunnelTimeline currentStatus={idea.status} />
+                            <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">{t('progress')}</span>
+                            <FunnelTimeline currentStatus={idea.status} lang={lang} />
                           </div>
 
                           {/* Attachments Display with Download */}
                           {idea.attachments && idea.attachments.length > 0 && (
                             <div className="mt-3">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">Fichiers joints (cliquez pour télécharger) :</span>
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">{t('fileAttachments')}</span>
                               <div className="flex flex-wrap gap-2">
                                 {idea.attachments.map((file, i) => (
                                   <button
@@ -1336,7 +1753,7 @@ export default function App() {
                           ) : (
                             <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-400 italic">
                               <Clock className="w-3.5 h-3.5" />
-                              Aucun feedback pour le moment. Votre dossier est en cours d'évaluation.
+                              {t('noFeedbackYet')}
                             </div>
                           )}
 
@@ -1363,14 +1780,14 @@ export default function App() {
               <div className="md:col-span-1 flex flex-col justify-center text-left">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-philips-light-blue text-philips-blue rounded-full text-xs font-semibold tracking-wide w-fit mb-2">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Espace Gestionnaire
+                  {t('managerSpace')}
                 </div>
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">Tableau de Bord</h2>
+                <h2 className="text-2xl font-black text-slate-800 tracking-tight">{t('dashboard')}</h2>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
                 <div className="space-y-1">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Total Idées</span>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('totalIdeas')}</span>
                   <span className="text-3xl font-black text-slate-800">{totalIdeas}</span>
                 </div>
                 <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-500 group-hover:bg-slate-100 transition duration-300">
@@ -1380,7 +1797,7 @@ export default function App() {
 
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
                 <div className="space-y-1">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">En évaluation</span>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('inEvaluation')}</span>
                   <span className="text-3xl font-black text-amber-600">{inEvaluationCount}</span>
                 </div>
                 <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500 group-hover:bg-amber-100 transition duration-300">
@@ -1390,7 +1807,7 @@ export default function App() {
 
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
                 <div className="space-y-1">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">Approuvées</span>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider">{t('approvedPlural')}</span>
                   <span className="text-3xl font-black text-emerald-600">{approvedCount}</span>
                 </div>
                 <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-500 group-hover:bg-emerald-100 transition duration-300">
@@ -1410,7 +1827,7 @@ export default function App() {
                   <Search className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                   <input
                     type="text"
-                    placeholder="Rechercher par médecin, mot-clé, feedback..."
+                    placeholder={t('searchPlaceholder')}
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition"
@@ -1425,14 +1842,14 @@ export default function App() {
                 <div className="flex flex-wrap items-center gap-4">
                   {/* BU Filter */}
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Filtre BU :</span>
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('buFilter')}</span>
                     <select
                       value={buFilter}
                       onChange={(e) => setBuFilter(e.target.value)}
                       className="px-3 py-1.5 border border-slate-200 bg-slate-50 text-xs font-semibold rounded-lg focus:outline-none focus:ring-1 focus:ring-philips-blue text-slate-700"
                     >
-                      <option value="Tous">Toutes les BUs</option>
-                      <option value="">Non assignée</option>
+                      <option value="Tous">{t('allBus')}</option>
+                      <option value="">{t('unassigned')}</option>
                       {BUSINESS_UNITS.map(bu => (
                         <option key={bu} value={bu}>{bu}</option>
                       ))}
@@ -1449,7 +1866,7 @@ export default function App() {
                           : 'text-slate-500 hover:text-slate-800'
                     }`}
                     >
-                      Tous
+                      {t('all')}
                     </button>
                     {orchestratorStatuses.map(status => {
                       const count = activeOrchestratorIdeas.filter(i => i.status === status).length;
@@ -1463,7 +1880,7 @@ export default function App() {
                               : 'text-slate-500 hover:text-slate-800'
                           }`}
                         >
-                          <span>{status}</span>
+                          <span>{statusLabel(status)}</span>
                           {count > 0 && (
                             <span className="px-1.5 py-0.2 bg-slate-200 text-slate-700 text-[9px] rounded-full font-black">
                               {count}
@@ -1481,7 +1898,7 @@ export default function App() {
               {filteredOrchestratorIdeas.length === 0 ? (
                 <div className="bg-white rounded-2xl p-16 text-center border border-slate-100 shadow-premium">
                   <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                  <p className="text-slate-500 font-medium text-sm">Aucune idée ne correspond à votre recherche.</p>
+                  <p className="text-slate-500 font-medium text-sm">{t('noIdeaMatches')}</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1506,7 +1923,7 @@ export default function App() {
                             <div className="flex items-center gap-2">
                               <span className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/50 px-2 py-0.5 rounded-lg text-slate-600">
                                 {getModalityIcon(idea.modality)}
-                                {idea.modality}
+                                {modalityLabel(idea.modality)}
                               </span>
                               
                               {idea.businessUnit ? (
@@ -1515,14 +1932,14 @@ export default function App() {
                                 </span>
                               ) : (
                                 <span className="bg-slate-50 text-slate-400 border border-slate-200/30 px-2 py-0.5 rounded-lg italic font-normal">
-                                  BU non assignée
+                                  {t('buUnassigned')}
                                 </span>
                               )}
                             </div>
 
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3 h-3 text-slate-400" />
-                              {new Date(idea.submittedAt).toLocaleDateString('fr-FR')}
+                              {new Date(idea.submittedAt).toLocaleDateString(dateLocale)}
                             </span>
                           </div>
 
@@ -1538,7 +1955,7 @@ export default function App() {
                         {idea.attachments && idea.attachments.length > 0 && (
                           <div className="flex items-center gap-1 text-[10px] text-slate-400 font-semibold mt-1">
                             <Paperclip className="w-3 h-3" />
-                            <span>{idea.attachments.length} pièce(s) jointe(s)</span>
+                            <span>{idea.attachments.length} {t('attachmentCount')}</span>
                           </div>
                         )}
 
@@ -1559,7 +1976,7 @@ export default function App() {
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusCfg.bg}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${statusCfg.dot}`} />
-                              {idea.status}
+                              {statusLabel(idea.status)}
                             </span>
                             <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-philips-blue transition transform group-hover:translate-x-0.5" />
                           </div>
@@ -1586,7 +2003,7 @@ export default function App() {
             <span>Clinical Research & Innovation Gateway MVP</span>
           </div>
           <div>
-            <span>Données synchronisées via Supabase. Version de démonstration 2026.</span>
+            <span>{t('footerSync')}</span>
           </div>
         </div>
       </footer>
@@ -1609,7 +2026,7 @@ export default function App() {
               <div>
                 <span className="text-[10px] font-bold text-sky-400 uppercase tracking-widest flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5" />
-                  Mode Édition - Orchestrateur
+                  {role === 'orchestrator' ? t('editModeOrchestrator') : t('editModePI')}
                 </span>
                 <h3 className="font-extrabold text-base mt-1 line-clamp-1 text-white">
                   {selectedIdea.title}
@@ -1628,7 +2045,7 @@ export default function App() {
               <div className="bg-emerald-500 text-white px-6 py-4 flex items-center gap-3 animate-fadeIn shadow-inner">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <div className="text-left text-xs font-semibold">
-                  Mise à jour réussie.
+                  {t('updateSuccess')}
                 </div>
                 <button 
                   onClick={() => setShowUpdateConfirmation(false)}
@@ -1648,7 +2065,7 @@ export default function App() {
                   <User className="w-5 h-5" />
                 </div>
                 <div>
-                  <span className="block text-xs text-slate-400 font-bold uppercase tracking-wide">Médecin soumissionnaire</span>
+                  <span className="block text-xs text-slate-400 font-bold uppercase tracking-wide">{t('submitterDoctor')}</span>
                   <span className="block text-sm font-black text-slate-800">{selectedIdea.piName}</span>
                   <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
                     <Building className="w-3 h-3 text-slate-400 font-bold" />
@@ -1661,7 +2078,7 @@ export default function App() {
               <div className="text-left">
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center gap-1">
                   <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
-                  Titre de l'idée (Modifiable)
+                  {t('ideaTitleEditable')}
                 </label>
                 <input
                   type="text"
@@ -1678,7 +2095,7 @@ export default function App() {
                 {/* Modality Selector */}
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Modalité clinique
+                    {t('clinicalModality')}
                   </label>
                   <select
                     value={editModality}
@@ -1686,43 +2103,47 @@ export default function App() {
                     className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-700"
                   >
                     {MODALITIES.map(mod => (
-                      <option key={mod} value={mod}>{mod}</option>
+                      <option key={mod} value={mod}>{modalityLabel(mod)}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* BU Selector (Orchestrator exclusive) */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Business Unit Philips
-                  </label>
-                  <select
-                    value={editBusinessUnit}
-                    onChange={(e) => setEditBusinessUnit(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 font-bold"
-                  >
-                    <option value="">Sélectionner BU</option>
-                    {BUSINESS_UNITS.map(bu => (
-                      <option key={bu} value={bu}>{bu}</option>
-                    ))}
-                  </select>
-                </div>
+                {role === 'orchestrator' && (
+                  <>
+                    {/* BU Selector (Orchestrator exclusive) */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        Business Unit Philips
+                      </label>
+                      <select
+                        value={editBusinessUnit}
+                        onChange={(e) => setEditBusinessUnit(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 font-bold"
+                      >
+                        <option value="">{t('selectBU')}</option>
+                        {BUSINESS_UNITS.map(bu => (
+                          <option key={bu} value={bu}>{bu}</option>
+                        ))}
+                      </select>
+                    </div>
 
-                {/* Status Selector */}
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Statut du projet
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-700"
-                  >
-                    {STATUSES.map(stat => (
-                      <option key={stat} value={stat}>{stat}</option>
-                    ))}
-                  </select>
-                </div>
+                    {/* Status Selector */}
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+                        {t('projectStatus')}
+                      </label>
+                      <select
+                        value={editStatus}
+                        onChange={(e) => setEditStatus(e.target.value)}
+                        className="w-full px-3 py-2 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-700"
+                      >
+                        {STATUSES.map(stat => (
+                          <option key={stat} value={stat}>{statusLabel(stat)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
 
               </div>
 
@@ -1731,9 +2152,9 @@ export default function App() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                     <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
-                    Problème clinique constaté (Modifiable)
+                    {t('clinicalProblemEditable')}
                   </label>
-                  <span className="text-[10px] text-slate-400 font-semibold">{editProblem.length}/1500 car.</span>
+                  <span className="text-[10px] text-slate-400 font-semibold">{editProblem.length}/1500 {t('chars')}</span>
                 </div>
                 <textarea
                   maxLength={1500}
@@ -1749,9 +2170,9 @@ export default function App() {
                 <div className="flex items-center justify-between mb-1">
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                     <Edit3 className="w-3.5 h-3.5 text-philips-blue" />
-                    Solution technologique proposée (Modifiable)
+                    {t('proposedSolutionEditable')}
                   </label>
-                  <span className="text-[10px] text-slate-400 font-semibold">{editSolution.length}/1500 car.</span>
+                  <span className="text-[10px] text-slate-400 font-semibold">{editSolution.length}/1500 {t('chars')}</span>
                 </div>
                 <textarea
                   maxLength={1500}
@@ -1765,7 +2186,7 @@ export default function App() {
               {/* Attachments List with Download (Orchestrator Panel) */}
               {selectedIdea.attachments && selectedIdea.attachments.length > 0 && (
                 <div className="text-left bg-slate-50 border border-slate-200/50 p-4 rounded-xl">
-                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Pièces jointes par le médecin (cliquez pour télécharger) :</span>
+                  <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('doctorAttachments')}</span>
                   <div className="space-y-1.5">
                     {selectedIdea.attachments.map((file, i) => (
                       <button
@@ -1786,19 +2207,20 @@ export default function App() {
                 </div>
               )}
 
-              {/* Feedback Philips */}
-              <div className="text-left bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
-                <label className="block text-xs font-bold uppercase tracking-wider text-blue-900/70 mb-2">
-                  Feedback Interne / Externe (Visible par le PI)
-                </label>
-                <textarea
-                  rows={4}
-                  placeholder="Écrivez vos commentaires sur la faisabilité, les étapes de chiffrage ou la décision finale..."
-                  value={editFeedback}
-                  onChange={(e) => setEditFeedback(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl border border-blue-200 text-xs focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none text-slate-800"
-                />
-              </div>
+              {role === 'orchestrator' && (
+                <div className="text-left bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-blue-900/70 mb-2">
+                    {t('feedbackVisible')}
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder={t('feedbackPlaceholder')}
+                    value={editFeedback}
+                    onChange={(e) => setEditFeedback(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-blue-200 text-xs focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none text-slate-800"
+                  />
+                </div>
+              )}
 
               {/* Action buttons */}
               <div className="flex gap-3 pt-4 mt-auto border-t border-slate-100 text-left">
@@ -1807,14 +2229,24 @@ export default function App() {
                   className="flex-1 bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-philips-blue/15 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
-                  Mettre à jour
+                  {role === 'orchestrator' ? t('update') : t('saveChanges')}
                 </button>
+                {role === 'pi' && selectedIdea.status !== 'Archivé' && (
+                  <button
+                    type="button"
+                    onClick={() => handleArchiveIdea(selectedIdea)}
+                    className="px-5 py-3 border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-xl text-sm font-bold transition cursor-pointer flex items-center gap-2"
+                  >
+                    <Archive className="w-4 h-4" />
+                    {t('archive')}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setSelectedIdea(null)}
                   className="px-5 py-3 border border-slate-200 hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-bold transition cursor-pointer"
                 >
-                  Fermer
+                  {t('close')}
                 </button>
               </div>
 
