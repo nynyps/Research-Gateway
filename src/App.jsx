@@ -263,7 +263,7 @@ export default function App() {
   const [newTitle, setNewTitle] = useState('');
   const [newProblem, setNewProblem] = useState('');
   const [newSolution, setNewSolution] = useState('');
-  const [newModality, setNewModality] = useState('IRM');
+  const [newModality, setNewModality] = useState('');
   const [tempAttachments, setTempAttachments] = useState([]); // Simulated attachments before submit
 
   // Search and Business Unit filters for Orchestrator view
@@ -381,7 +381,10 @@ export default function App() {
           if (error) throw error;
           showToast("Connexion réussie !", "success");
         } catch (err) {
-          showToast(err.message || "Erreur de connexion.", "error");
+          const message = err.message?.toLowerCase().includes('invalid login credentials')
+            ? "Connexion impossible : email ou mot de passe incorrect."
+            : "Connexion impossible. Vérifiez vos identifiants.";
+          showToast(message, "error");
         } finally {
           setAuthLoading(false);
         }
@@ -532,6 +535,10 @@ export default function App() {
       showToast("Veuillez saisir un titre.", "error");
       return;
     }
+    if (!newModality) {
+      showToast("Veuillez sélectionner une modalité Philips.", "error");
+      return;
+    }
     if (newProblem.length > 1500) {
       showToast("Le problème clinique dépasse 1500 caractères.", "error");
       return;
@@ -599,7 +606,7 @@ export default function App() {
     setNewTitle('');
     setNewProblem('');
     setNewSolution('');
-    setNewModality('IRM');
+    setNewModality('');
     setTempAttachments([]);
   };
 
@@ -989,24 +996,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* User Profile Info and DB Status */}
+          {/* User Profile Info */}
           <div className="flex items-center gap-3">
             
-            {/* Database indicator */}
-            <div className="hidden md:flex items-center">
-              {supabase ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-full text-[10px] font-bold">
-                  <Database className="w-3 h-3 text-emerald-600" />
-                  Cloud Synced
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-100 rounded-full text-[10px] font-bold">
-                  <AlertCircle className="w-3 h-3 text-red-600" />
-                  Supabase requis
-                </span>
-              )}
-            </div>
-
             {/* Profile Tag */}
             <div className="flex items-center gap-2.5 bg-slate-100 border border-slate-200/50 pl-3 pr-4 py-1.5 rounded-full">
               <div className="w-6 h-6 rounded-full bg-philips-blue flex items-center justify-center text-[10px] font-extrabold text-white">
@@ -1029,7 +1021,6 @@ export default function App() {
               <LogOut className="w-4 h-4" />
             </button>
 
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 animate-ping"></span>
           </div>
 
         </div>
@@ -1094,10 +1085,14 @@ export default function App() {
                       Modalité Philips (Imagerie)
                     </label>
                     <select
+                      required
                       value={newModality}
                       onChange={(e) => setNewModality(e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 bg-white"
+                      className={`w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition duration-200 bg-white ${
+                        newModality ? 'text-slate-800' : 'text-slate-400'
+                      }`}
                     >
+                      <option value="" disabled>Sélectionner une modalité</option>
                       {MODALITIES.map((mod) => (
                         <option key={mod} value={mod}>{mod}</option>
                       ))}
@@ -1371,9 +1366,6 @@ export default function App() {
                   Espace Gestionnaire
                 </div>
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">Tableau de Bord</h2>
-                <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                  Pilotez et arbitrez le catalogue d'idées cliniques reçues.
-                </p>
               </div>
 
               <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-premium flex items-center justify-between hover:border-slate-200 transition group text-left">
@@ -1636,7 +1628,7 @@ export default function App() {
               <div className="bg-emerald-500 text-white px-6 py-4 flex items-center gap-3 animate-fadeIn shadow-inner">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <div className="text-left text-xs font-semibold">
-                  Mise à jour réussie ! Le projet a été actualisé et synchronisé en ligne.
+                  Mise à jour réussie.
                 </div>
                 <button 
                   onClick={() => setShowUpdateConfirmation(false)}
