@@ -11,6 +11,6 @@ export const supabase = (supabaseUrl && supabaseAnonKey)
 if (!supabase) {
   console.warn(
     "Supabase is not configured (missing VITE_SUPABASE_URL and/or VITE_SUPABASE_ANON_KEY). " +
-    "Running in Local Fallback Mode (using localStorage)."
+    "The portal requires Supabase so shared test data stays synchronized across computers."
   );
 }

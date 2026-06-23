@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   PlusCircle, 
   Layers, 
@@ -16,12 +16,10 @@ import {
   AlertCircle, 
   X, 
   ChevronRight, 
-  RotateCcw, 
   Building, 
   Calendar, 
   MessageSquare,
   FileText,
-  BookmarkCheck,
   TrendingUp,
   Inbox,
   Sparkles,
@@ -36,77 +34,10 @@ import {
 } from 'lucide-react';
 import { supabase } from './supabaseClient';
 
-
-// Define initial mock data with BUs and Attachments
-const INITIAL_IDEAS = [
-  {
-    id: 'idea-1',
-    title: 'IA pour détection artéfacts en IRM',
-    problem: 'Les mouvements involontaires des patients pendant les séquences IRM longues génèrent des artéfacts cinétiques majeurs, nécessitant souvent de refaire l’acquisition, ce qui rallonge l’examen et réduit la productivité du service de radiologie.',
-    solution: 'Développer un algorithme d’apprentissage profond intégré au reconstructeur d’image Philips pour détecter et corriger en temps réel les déformations de phase causées par les micro-mouvements sans interrompre la séquence.',
-    modality: 'IRM',
-    businessUnit: 'IRM',
-    status: 'En évaluation',
-    piName: 'Dr. John Smith',
-    piHospital: 'CHU de Lyon',
-    submittedAt: '2026-06-10T14:32:00.000Z',
-    feedback: 'Première revue effectuée par le pôle Imagerie Diagnostique. Le sujet est jugé très pertinent. En attente de chiffrage par l\'équipe R&D.',
-    attachments: [
-      { name: 'mri_motion_artifacts_study.pdf', size: '2.4 MB' },
-      { name: 'clinical_workflow_impacts.xlsx', size: '1.1 MB' }
-    ]
-  },
-  {
-    id: 'idea-2',
-    title: 'Écho-guidage automatique pour accès veineux pédiatrique',
-    problem: 'La pose de voies veineuses chez les nourrissons et jeunes enfants est extrêmement délicate, entraînant de multiples tentatives douloureuses et du stress pour le jeune patient et l’équipe soignante.',
-    solution: 'Créer un logiciel d’assistance sur l’échographe portable Philips Lumify, utilisant la reconnaissance d’images pour surligner en vert fluo sur l’écran la veine optimale et guider l’aiguille en temps réel.',
-    modality: 'Échographie',
-    businessUnit: 'CI',
-    status: 'Soumis',
-    piName: 'Dr. Claire Martin',
-    piHospital: 'Hôpital Necker Enfants Malades',
-    submittedAt: '2026-06-13T09:15:00.000Z',
-    feedback: '',
-    attachments: []
-  },
-  {
-    id: 'idea-3',
-    title: 'Monitorage respiratoire non invasif en néonatalogie',
-    problem: 'Les capteurs actuels par électrodes adhésives peuvent endommager la peau extrêmement fragile des grands prématurés en unité de soins intensifs néonatals.',
-    solution: 'Utiliser une caméra haute définition Philips dotée d’une technologie de photopléthysmographie optique passive pour mesurer la fréquence respiratoire et la saturation d’oxygène à distance sans aucun contact physique.',
-    modality: 'Monitorage',
-    businessUnit: 'Monitoring',
-    status: 'Chiffrage Ressources',
-    piName: 'Dr. Alain Dubois',
-    piHospital: 'Hôpital AP-HP Paris',
-    submittedAt: '2026-06-08T16:45:00.000Z',
-    feedback: 'Intéressant. Nous évaluons le coût de développement d\'un prototype optique avec l\'équipe R&D Eindhoven.',
-    attachments: [
-      { name: 'neonatal_skin_sensitivity_report.pdf', size: '840 KB' }
-    ]
-  },
-  {
-    id: 'idea-4',
-    title: 'Superposition d\'images 3D temps réel en thérapie guidée',
-    problem: 'Lors des interventions cardiaques mini-invasives, la navigation se fait principalement sous scopie 2D, ce qui manque de repères spatiaux tridimensionnels clairs.',
-    solution: 'Développer un outil logiciel qui superpose automatiquement un modèle 3D du cœur pré-opératoire (obtenu par scanner) sur les images fluoroscopiques temps réel d’Azurion en recalant les structures osseuses.',
-    modality: 'Image-Guided Therapy',
-    businessUnit: 'IGT',
-    status: 'Arbitrage Philips',
-    piName: 'Dr. Sofia Garcia',
-    piHospital: 'CHU de Toulouse',
-    submittedAt: '2026-06-05T11:20:00.000Z',
-    feedback: 'Dossier présenté au comité d\'arbitrage trimestriel. Discussions en cours sur l\'intégration au catalogue Azurion.',
-    attachments: [
-      { name: 'azurion_3d_overlay_concept.pptx', size: '4.7 MB' }
-    ]
-  }
-];
-
 // Modalities list
 const MODALITIES = [
   'IRM', 
+  'CT',
   'Échographie', 
   'Monitorage', 
   'Image-Guided Therapy', 
@@ -169,7 +100,6 @@ const FunnelTimeline = ({ currentStatus }) => {
       {FUNNEL_STEPS.map((step, index) => {
         const isCompleted = currentIndex > index;
         const isCurrent = currentIndex === index;
-        const isFuture = currentIndex < index;
         const StepIcon = stepIcons[step.key] || HelpCircle;
 
         return (
@@ -230,6 +160,8 @@ const getModalityIcon = (modality) => {
   switch (modality) {
     case 'IRM':
       return <Radio className="w-4 h-4 text-sky-600" />;
+    case 'CT':
+      return <Layers className="w-4 h-4 text-blue-600" />;
     case 'Échographie':
       return <Waves className="w-4 h-4 text-indigo-600" />;
     case 'Monitorage':
@@ -281,9 +213,26 @@ const getStatusConfig = (status) => {
   }
 };
 
+const mapSupabaseIdea = (item) => ({
+  id: item.id,
+  title: item.title,
+  problem: item.problem,
+  solution: item.solution,
+  modality: item.modality,
+  businessUnit: item.business_unit,
+  status: item.status,
+  piName: item.pi_name,
+  piHospital: item.pi_hospital,
+  piEmail: item.pi_email,
+  submittedAt: item.submitted_at,
+  feedback: item.feedback || '',
+  attachments: item.attachments || [],
+  userId: item.user_id
+});
+
 export default function App() {
   const [user, setUser] = useState(null); // { id, email, name, hospital, role }
-  const [authLoading, setAuthLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(() => Boolean(supabase));
   const [authMode, setAuthMode] = useState('login'); // 'login' | 'signup'
   
   // Auth Form States
@@ -326,39 +275,33 @@ export default function App() {
   const [toast, setToast] = useState(null);
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
 
-  // 1. Session check on Mount (Supabase vs Local Fallback)
-  useEffect(() => {
-    if (supabase) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session) {
-          fetchSupabaseProfile(session.user);
-        } else {
-          setAuthLoading(false);
-        }
-      });
-
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session) {
-          fetchSupabaseProfile(session.user);
-        } else {
-          setUser(null);
-          setAuthLoading(false);
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    } else {
-      const savedUser = localStorage.getItem('philips_gateway_user');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
-      }
-      setAuthLoading(false);
-    }
+  // Toast notifier
+  const showToast = useCallback((message, type = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 4500);
   }, []);
 
-  const fetchSupabaseProfile = async (supabaseUser) => {
+  const fetchIdeasFromSupabase = useCallback(async () => {
     try {
       const { data, error } = await supabase
+        .from('ideas')
+        .select('*')
+        .order('submitted_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      setIdeas(data.map(mapSupabaseIdea));
+    } catch (err) {
+      console.error("Error fetching ideas:", err);
+      showToast("Impossible de synchroniser les idées.", "error");
+    }
+  }, [showToast]);
+
+  const fetchSupabaseProfile = useCallback(async (supabaseUser) => {
+    try {
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', supabaseUser.id)
@@ -393,69 +336,35 @@ export default function App() {
         role: meta.role || 'pi'
       });
     } finally {
+      await fetchIdeasFromSupabase();
       setAuthLoading(false);
     }
-  };
+  }, [fetchIdeasFromSupabase]);
 
-  // 2. Load ideas depending on logged-in user
+  // 1. Session check on Mount (Supabase)
   useEffect(() => {
-    if (!user) {
-      setIdeas([]);
-      return;
-    }
-
     if (supabase) {
-      fetchIdeasFromSupabase();
-    } else {
-      const saved = localStorage.getItem('philips_gateway_ideas');
-      if (saved) {
-        setIdeas(JSON.parse(saved));
-      } else {
-        localStorage.setItem('philips_gateway_ideas', JSON.stringify(INITIAL_IDEAS));
-        setIdeas(INITIAL_IDEAS);
-      }
-    }
-  }, [user]);
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session) {
+          fetchSupabaseProfile(session.user);
+        } else {
+          setAuthLoading(false);
+        }
+      });
 
-  const fetchIdeasFromSupabase = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('ideas')
-        .select('*')
-        .order('submitted_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      const mapped = data.map(item => ({
-        id: item.id,
-        title: item.title,
-        problem: item.problem,
-        solution: item.solution,
-        modality: item.modality,
-        businessUnit: item.business_unit,
-        status: item.status,
-        piName: item.pi_name,
-        piHospital: item.pi_hospital,
-        piEmail: item.pi_email,
-        submittedAt: item.submitted_at,
-        feedback: item.feedback || '',
-        attachments: item.attachments || [],
-        userId: item.user_id
-      }));
-      setIdeas(mapped);
-    } catch (err) {
-      console.error("Error fetching ideas:", err);
-      showToast("Impossible de synchroniser les idées.", "error");
-    }
-  };
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session) {
+          fetchSupabaseProfile(session.user);
+        } else {
+          setUser(null);
+          setIdeas([]);
+          setAuthLoading(false);
+        }
+      });
 
-  // Toast notifier
-  const showToast = (message, type = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 4500);
-  };
+      return () => subscription.unsubscribe();
+    }
+  }, [fetchSupabaseProfile]);
 
   // Auth Submit Handlers
   const handleAuthSubmit = async (e) => {
@@ -477,8 +386,7 @@ export default function App() {
           setAuthLoading(false);
         }
       } else {
-        // Local Login Fallback
-        handleLocalSignIn(e);
+        showToast("Supabase n'est pas configuré. Les données doivent être stockées en ligne pour les tests multi-postes.", "error");
       }
     } else {
       if (supabase) {
@@ -519,120 +427,27 @@ export default function App() {
           setAuthLoading(false);
         }
       } else {
-        // Local Sign Up Fallback
-        handleLocalSignUp(e);
+        showToast("Supabase n'est pas configuré. Création de compte impossible sans synchronisation cloud.", "error");
       }
     }
-  };
-
-  const handleLocalSignIn = (e) => {
-    if (!authEmail || !authPassword) {
-      showToast("Veuillez remplir tous les champs.", "error");
-      return;
-    }
-    // Hardcoded demo credentials
-    if (authEmail === 'admin@philips.com' && authPassword === 'admin123') {
-      const demoAdmin = {
-        id: 'demo-admin',
-        email: 'admin@philips.com',
-        name: 'Orchestrateur Philips',
-        hospital: 'Philips Headquarters',
-        role: 'orchestrator'
-      };
-      setUser(demoAdmin);
-      localStorage.setItem('philips_gateway_user', JSON.stringify(demoAdmin));
-      showToast("Connexion Démo (Admin) réussie !", "success");
-      return;
-    }
-    if (authEmail === 'doctor@necker.fr' && authPassword === 'doctor123') {
-      const demoDoctor = {
-        id: 'demo-doctor',
-        email: 'doctor@necker.fr',
-        name: 'Dr. Claire Martin',
-        hospital: 'Hôpital Necker',
-        role: 'pi'
-      };
-      setUser(demoDoctor);
-      localStorage.setItem('philips_gateway_user', JSON.stringify(demoDoctor));
-      showToast("Connexion Démo (PI) réussie !", "success");
-      return;
-    }
-
-    const savedUsers = localStorage.getItem('philips_gateway_users');
-    const users = savedUsers ? JSON.parse(savedUsers) : [];
-    const foundUser = users.find(
-      u => u.email.toLowerCase() === authEmail.toLowerCase() && u.password === authPassword
-    );
-
-    if (!foundUser) {
-      showToast("Identifiants incorrects ou compte inexistant.", "error");
-      return;
-    }
-
-    setUser(foundUser);
-    localStorage.setItem('philips_gateway_user', JSON.stringify(foundUser));
-    showToast("Connexion réussie !", "success");
-  };
-
-  const handleLocalSignUp = (e) => {
-    if (!authEmail || !authPassword || !authName) {
-      showToast("Veuillez remplir tous les champs obligatoires.", "error");
-      return;
-    }
-
-    const savedUsers = localStorage.getItem('philips_gateway_users');
-    const users = savedUsers ? JSON.parse(savedUsers) : [];
-
-    if (users.find(u => u.email.toLowerCase() === authEmail.toLowerCase())) {
-      showToast("Cet email est déjà enregistré.", "error");
-      return;
-    }
-
-    const newUser = {
-      id: `user-${Date.now()}`,
-      email: authEmail,
-      password: authPassword,
-      name: authName,
-      hospital: authRole === 'pi' ? authHospital : 'Philips Admin',
-      role: authRole
-    };
-
-    users.push(newUser);
-    localStorage.setItem('philips_gateway_users', JSON.stringify(users));
-    setUser(newUser);
-    localStorage.setItem('philips_gateway_user', JSON.stringify(newUser));
-    showToast("Compte créé et connecté !", "success");
   };
 
   const handleSignOut = async () => {
     if (supabase) {
       await supabase.auth.signOut();
       setUser(null);
-    } else {
-      localStorage.removeItem('philips_gateway_user');
-      setUser(null);
+      setIdeas([]);
     }
     setSelectedIdea(null);
     showToast("Déconnexion réussie.", "info");
   };
 
-  const handleResetData = async () => {
-    if (window.confirm("Voulez-vous restaurer les données d'origine ? Toutes vos modifications locales seront perdues.")) {
-      if (supabase) {
-        showToast("La réinitialisation globale n'est pas disponible en ligne.", "warning");
-        return;
-      }
-      setIdeas(INITIAL_IDEAS);
-      localStorage.setItem('philips_gateway_ideas', JSON.stringify(INITIAL_IDEAS));
-      setSelectedIdea(null);
-      showToast("Données d'origine restaurées !", "info");
-    }
-  };
-
   // Dashboard calculations for orchestrator
-  const totalIdeas = ideas.length;
-  const inEvaluationCount = ideas.filter(i => i.status === 'En évaluation').length;
-  const approvedCount = ideas.filter(i => i.status === 'Approuvé').length;
+  const activeOrchestratorIdeas = ideas.filter(i => i.status !== 'Archivé');
+  const orchestratorStatuses = STATUSES.filter(status => status !== 'Archivé');
+  const totalIdeas = activeOrchestratorIdeas.length;
+  const inEvaluationCount = activeOrchestratorIdeas.filter(i => i.status === 'En évaluation').length;
+  const approvedCount = activeOrchestratorIdeas.filter(i => i.status === 'Approuvé').length;
 
 
   // Handle file upload — reads content as base64 so it survives page reloads
@@ -649,7 +464,7 @@ export default function App() {
           size: file.size > 1024 * 1024
             ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
             : `${(file.size / 1024).toFixed(0)} KB`,
-          dataUrl: ev.target.result // base64 data URI, persists in localStorage
+          dataUrl: ev.target.result
         });
         loaded++;
         if (loaded === files.length) {
@@ -685,7 +500,7 @@ export default function App() {
         `===================================\n` +
         `Fichier : ${file.name}\n` +
         `Taille  : ${file.size || 'N/A'}\n\n` +
-        `Ce fichier est une démonstration du MVP Philips Clinical Innovation Gateway.\n` +
+        `Ce fichier est une démonstration du MVP Philips Clinical Research & Innovation Gateway.\n` +
         `Dans la version de production, le vrai document serait téléchargé depuis le serveur.`;
       const blob = new Blob([mockContent], { type: 'text/plain;charset=utf-8' });
       downloadUrl = URL.createObjectURL(blob);
@@ -722,8 +537,11 @@ export default function App() {
       return;
     }
 
+    const submittedAt = new Date().toISOString();
+    const generatedId = `idea-${submittedAt.replace(/\D/g, '')}`;
+
     const newIdea = {
-      id: `idea-${Date.now()}`,
+      id: generatedId,
       title: newTitle,
       problem: newProblem,
       solution: newSolution,
@@ -733,7 +551,7 @@ export default function App() {
       piName: user?.name || 'Dr. Anonyme',
       piHospital: user?.hospital || 'Hôpital non renseigné',
       piEmail: user?.email || 'anon@example.com',
-      submittedAt: new Date().toISOString(),
+      submittedAt,
       feedback: '',
       attachments: tempAttachments,
       userId: user?.id || null
@@ -769,10 +587,8 @@ export default function App() {
         showToast(err.message || "Erreur de sauvegarde en ligne.", "error");
       }
     } else {
-      const updated = [newIdea, ...ideas];
-      setIdeas(updated);
-      localStorage.setItem('philips_gateway_ideas', JSON.stringify(updated));
-      showToast("Votre idée a été soumise avec succès !", "success");
+      showToast("Supabase n'est pas configuré. L'idée n'a pas été enregistrée.", "error");
+      return;
     }
     
     // Clear states
@@ -839,9 +655,6 @@ export default function App() {
     });
 
     setIdeas(updatedIdeas);
-    if (!supabase) {
-      localStorage.setItem('philips_gateway_ideas', JSON.stringify(updatedIdeas));
-    }
     
     // Update selected idea reference in view
     setSelectedIdea(prev => ({
@@ -851,10 +664,6 @@ export default function App() {
 
     // Trigger explicit confirmation message
     setShowUpdateConfirmation(true);
-    if (!supabase) {
-      showToast("Mise à jour enregistrée !", "success");
-    }
-
     // Close/dim confirmation message after 4s
     setTimeout(() => {
       setShowUpdateConfirmation(false);
@@ -888,7 +697,7 @@ export default function App() {
   });
 
   // Filter ideas for Orchestrator
-  const filteredOrchestratorIdeas = ideas.filter(idea => {
+  const filteredOrchestratorIdeas = activeOrchestratorIdeas.filter(idea => {
     const matchesSearch = 
       idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       idea.piName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -932,9 +741,9 @@ export default function App() {
               </div>
               
               <div className="space-y-2">
-                <h2 className="text-2xl font-black leading-tight tracking-tight text-white">Clinical Innovation Gateway</h2>
+                <h2 className="text-2xl font-black leading-tight tracking-tight text-white">Clinical Research & Innovation Gateway</h2>
                 <p className="text-slate-200 text-xs leading-relaxed">
-                  Co-construire la médecine de demain en connectant praticiens cliniques et ingénieurs de recherche Philips.
+                  Co-construire la médecine de demain en connectant praticiens cliniques et équipes de recherche et d'innovation Philips.
                 </p>
               </div>
 
@@ -980,8 +789,8 @@ export default function App() {
                     <Database className="w-3 h-3" /> Mode Cloud (Supabase)
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-sky-50 text-sky-700 rounded-full text-[10px] font-bold border border-sky-200">
-                    <Info className="w-3 h-3" /> Mode Local (Démo)
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-red-50 text-red-700 rounded-full text-[10px] font-bold border border-red-200">
+                    <AlertCircle className="w-3 h-3" /> Supabase requis
                   </span>
                 )}
               </div>
@@ -1011,9 +820,15 @@ export default function App() {
               </h3>
               <p className="text-slate-500 text-xs mb-6">
                 {authMode === 'login' 
-                  ? 'Connectez-vous pour suivre ou soumettre des innovations cliniques.' 
+                  ? "Connectez-vous pour suivre ou soumettre des projets de recherche et d'innovation cliniques." 
                   : 'Créez votre compte pour commencer à soumettre ou gérer les idées.'}
               </p>
+
+              {!supabase && (
+                <div className="mb-5 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 leading-relaxed">
+                  Supabase doit être configuré pour utiliser le portail. Les comptes, idées, statuts, feedbacks et pièces jointes doivent rester synchronisés entre ordinateurs.
+                </div>
+              )}
 
               <form onSubmit={handleAuthSubmit} className="space-y-4">
                 {authMode === 'signup' && (
@@ -1117,38 +932,40 @@ export default function App() {
                   {authMode === 'login' ? 'Se connecter' : "Créer l'accès"}
                 </button>
               </form>
+
+              {supabase && (
+                <div className="mt-8 pt-4 border-t border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Comptes de test rapides :</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthEmail('doctor@hcl.fr');
+                        setAuthPassword('doctor123');
+                        setAuthMode('login');
+                        showToast("Champs remplis pour Dr. Claire Martin (PI - HCL)", "info");
+                      }}
+                      className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Accès PI HCL
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAuthEmail('admin@philips.com');
+                        setAuthPassword('admin123');
+                        setAuthMode('login');
+                        showToast("Champs remplis pour l'Orchestrateur (Admin)", "info");
+                      }}
+                      className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      Accès Orchestrateur
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Quick Demo Fill Buttons (Only visible if Supabase is offline) */}
-            {!supabase && (
-              <div className="mt-8 pt-4 border-t border-slate-100">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Comptes de test rapides (Démo) :</span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setAuthEmail('doctor@necker.fr');
-                      setAuthPassword('doctor123');
-                      setAuthMode('login');
-                      showToast("Champs remplis pour Dr. Claire Martin (PI)", "info");
-                    }}
-                    className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    Accès PI (Médecin)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setAuthEmail('admin@philips.com');
-                      setAuthPassword('admin123');
-                      setAuthMode('login');
-                      showToast("Champs remplis pour l'Orchestrateur (Admin)", "info");
-                    }}
-                    className="flex-1 text-[10px] font-bold border border-slate-200 text-slate-600 py-1.5 px-2 rounded-lg hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    Accès Orchestrateur
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -1195,7 +1012,7 @@ export default function App() {
                 <span className="w-1.5 h-1.5 rounded-full bg-philips-accent"></span>
                 <span className="text-xs uppercase font-semibold text-slate-400 tracking-wider">Gateway</span>
               </div>
-              <h1 className="text-sm font-semibold text-slate-600 -mt-1 hidden sm:block">Clinical Innovation Gateway</h1>
+              <h1 className="text-sm font-semibold text-slate-600 -mt-1 hidden sm:block">Clinical Research & Innovation Gateway</h1>
             </div>
           </div>
 
@@ -1211,8 +1028,8 @@ export default function App() {
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-sky-50 text-sky-700 border border-sky-100 rounded-full text-[10px] font-bold">
-                  <Database className="w-3 h-3 text-sky-600" />
-                  Local Fallback
+                  <AlertCircle className="w-3 h-3 text-red-600" />
+                  Supabase requis
                 </span>
               )}
             </div>
@@ -1239,17 +1056,6 @@ export default function App() {
               <LogOut className="w-4 h-4" />
             </button>
 
-            {/* Reset mock data button (only visible in local fallback) */}
-            {!supabase && (
-              <button 
-                onClick={handleResetData}
-                title="Réinitialiser les données"
-                className="p-2 text-slate-400 hover:text-philips-blue hover:bg-slate-50 rounded-full transition duration-200 cursor-pointer"
-              >
-                <RotateCcw className="w-4 h-4" />
-              </button>
-            )}
-            
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 animate-ping"></span>
           </div>
 
@@ -1275,7 +1081,7 @@ export default function App() {
                 </div>
                 <h2 className="text-3xl font-extrabold tracking-tight">Bonjour, {user?.name || 'Praticien'}</h2>
                 <p className="text-slate-200 mt-2 text-sm leading-relaxed text-left">
-                  Bienvenue sur le portail d'innovation clinique Philips de l'<strong>{user?.hospital || 'votre établissement'}</strong>. Soumettez vos idées de dispositifs et solutions numériques pour co-construire la médecine de demain avec nos ingénieurs.
+                  Bienvenue sur le portail de recherche et d'innovation clinique Philips de l'<strong>{user?.hospital || 'votre établissement'}</strong>. Soumettez vos idées de dispositifs et solutions numériques pour co-construire la médecine de demain avec nos ingénieurs.
                 </p>
               </div>
             </div>
@@ -1680,8 +1486,8 @@ export default function App() {
                     >
                       Tous
                     </button>
-                    {STATUSES.map(status => {
-                      const count = ideas.filter(i => i.status === status).length;
+                    {orchestratorStatuses.map(status => {
+                      const count = activeOrchestratorIdeas.filter(i => i.status === status).length;
                       return (
                         <button
                           key={status}
@@ -1812,10 +1618,10 @@ export default function App() {
           <div className="flex items-center gap-2">
             <span className="font-extrabold text-white tracking-widest">PHILIPS</span>
             <span>|</span>
-            <span>Clinical Innovation Gateway MVP</span>
+            <span>Clinical Research & Innovation Gateway MVP</span>
           </div>
           <div>
-            <span>Données stockées localement. Version de démonstration 2026.</span>
+            <span>Données synchronisées via Supabase. Version de démonstration 2026.</span>
           </div>
         </div>
       </footer>
@@ -1857,7 +1663,7 @@ export default function App() {
               <div className="bg-emerald-500 text-white px-6 py-4 flex items-center gap-3 animate-fadeIn shadow-inner">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <div className="text-left text-xs font-semibold">
-                  Mise à jour réussie ! Le projet a été actualisé et sauvegardé localement.
+                  Mise à jour réussie ! Le projet a été actualisé et synchronisé en ligne.
                 </div>
                 <button 
                   onClick={() => setShowUpdateConfirmation(false)}
