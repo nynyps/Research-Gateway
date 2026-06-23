@@ -70,18 +70,18 @@ const COPY = {
     directFeedbackCopy: 'Échangez avec les experts R&D de Philips.',
     versionLabel: 'Version MVP 1.1.0 • Philips HealthTech',
     portalConnection: 'Connexion Portail',
-    supabaseRequired: 'Supabase requis',
+    supabaseRequired: 'Service en ligne requis',
     signIn: 'Se connecter',
     createAccount: 'Créer un compte',
     welcomeBack: 'Bienvenue à nouveau',
     joinGateway: 'Rejoindre le Gateway',
     loginIntro: "Connectez-vous pour suivre ou soumettre des projets de recherche et d'innovation cliniques.",
-    signupIntro: 'Créez un compte utilisateur ou admin, puis utilisez-le directement pour vous connecter.',
-    supabaseConfigWarning: 'Supabase doit être configuré pour utiliser le portail. Les comptes, idées, statuts, feedbacks et pièces jointes doivent rester synchronisés entre ordinateurs.',
+    signupIntro: 'Créez un compte, puis utilisez-le directement pour vous connecter.',
+    supabaseConfigWarning: 'Le service en ligne doit être configuré pour utiliser le portail. Les comptes, idées, statuts, feedbacks et pièces jointes doivent rester synchronisés entre ordinateurs.',
     fullName: 'Nom Complet',
     accountType: 'Type de compte',
     userAccount: 'Utilisateur',
-    adminAccount: 'Admin',
+    adminAccount: 'Gestionnaire',
     hospitalInstitution: 'Hôpital / Institution',
     emailAddress: 'Adresse Email',
     password: 'Mot de passe',
@@ -130,7 +130,7 @@ const COPY = {
     attachmentCount: 'pièce(s) jointe(s)',
     buUnassigned: 'BU non assignée',
     submitterDoctor: 'Médecin soumissionnaire',
-    editModeOrchestrator: 'Mode Édition - Orchestrateur',
+    editModeOrchestrator: 'Mode Édition - Gestionnaire',
     editModePI: 'Modifier mon idée',
     updateSuccess: 'Mise à jour réussie.',
     ideaTitleEditable: "Titre de l'idée (Modifiable)",
@@ -145,7 +145,7 @@ const COPY = {
     update: 'Mettre à jour',
     close: 'Fermer',
     saveChanges: 'Enregistrer',
-    footerSync: 'Données synchronisées via Supabase. Version de démonstration 2026.',
+    footerSync: 'Données synchronisées en ligne. Version de démonstration 2026.',
     logoutTitle: 'Se déconnecter',
     titleRequired: 'Veuillez saisir un titre.',
     modalityRequired: 'Veuillez sélectionner une modalité Philips.',
@@ -153,15 +153,15 @@ const COPY = {
     solutionTooLong: 'La solution proposée dépasse 1500 caractères.',
     ideaSaved: 'Votre idée a été enregistrée en ligne !',
     ideaSaveError: "Erreur de sauvegarde en ligne.",
-    ideaNotSavedNoSupabase: "Supabase n'est pas configuré. L'idée n'a pas été enregistrée.",
+    ideaNotSavedNoSupabase: "Le service en ligne n'est pas configuré. L'idée n'a pas été enregistrée.",
     loginSuccess: 'Connexion réussie !',
     loginInvalid: 'Connexion impossible : email ou mot de passe incorrect.',
     loginError: 'Connexion impossible. Vérifiez vos identifiants.',
-    supabaseLoginMissing: "Supabase n'est pas configuré. Les données doivent être stockées en ligne pour les tests multi-postes.",
+    supabaseLoginMissing: "Le service en ligne n'est pas configuré. Les données doivent être stockées en ligne pour les tests multi-postes.",
     signupSuccess: 'Compte créé, connexion en cours...',
-    signupConfirmEmail: "Compte créé. Si la connexion n'est pas automatique, désactivez la confirmation email dans Supabase.",
+    signupConfirmEmail: "Compte créé. Si la connexion n'est pas automatique, désactivez la confirmation email dans la configuration du portail.",
     signupError: "Erreur lors de l'inscription.",
-    signupMissingSupabase: "Supabase n'est pas configuré. Création de compte impossible sans synchronisation cloud.",
+    signupMissingSupabase: "Le service en ligne n'est pas configuré. Création de compte impossible sans synchronisation cloud.",
     logoutSuccess: 'Déconnexion réussie.',
     syncIdeasError: 'Impossible de synchroniser les idées.',
     filesAttached: 'fichier(s) joint(s) avec succès.',
@@ -170,16 +170,15 @@ const COPY = {
     updateTitleRequired: 'Le titre ne peut pas être vide.',
     updateSaved: 'Mise à jour enregistrée en ligne !',
     updateError: 'Erreur de mise à jour en ligne.',
-    archiveConfirm: 'Archiver cette idée ? Elle disparaîtra du tableau de bord orchestrateur.',
     archiveConfirmTitle: 'Archiver cette idée ?',
-    archiveConfirmBody: "Elle restera consultable dans les idées archivées, mais disparaîtra du tableau de bord actif de l'orchestrateur.",
+    archiveConfirmBody: 'Elle restera consultable dans vos idées archivées.',
     cancel: 'Annuler',
     confirmArchive: 'Archiver',
     activeIdeas: 'Idées actives',
     ideaArchived: 'Idée archivée.',
     ideaUpdated: 'Idée mise à jour.',
     chars: 'car.',
-    roleOrchestrator: 'Orchestrateur',
+    roleOrchestrator: 'Gestionnaire',
     rolePI: 'PI',
     unspecified: 'Non spécifié',
     anonymousDoctor: 'Dr. Anonyme',
@@ -201,18 +200,18 @@ const COPY = {
     directFeedbackCopy: 'Exchange with Philips R&D experts.',
     versionLabel: 'MVP 1.1.0 • Philips HealthTech',
     portalConnection: 'Portal connection',
-    supabaseRequired: 'Supabase required',
+    supabaseRequired: 'Online service required',
     signIn: 'Sign in',
     createAccount: 'Create account',
     welcomeBack: 'Welcome back',
     joinGateway: 'Join the Gateway',
     loginIntro: 'Sign in to track or submit clinical research and innovation projects.',
-    signupIntro: 'Create a user or admin account, then use it directly to sign in.',
-    supabaseConfigWarning: 'Supabase must be configured to use the portal. Accounts, ideas, statuses, feedback, and attachments must stay synchronized across computers.',
+    signupIntro: 'Create an account, then use it directly to sign in.',
+    supabaseConfigWarning: 'The online service must be configured to use the portal. Accounts, ideas, statuses, feedback, and attachments must stay synchronized across computers.',
     fullName: 'Full name',
     accountType: 'Account type',
     userAccount: 'User',
-    adminAccount: 'Admin',
+    adminAccount: 'Manager',
     hospitalInstitution: 'Hospital / Institution',
     emailAddress: 'Email address',
     password: 'Password',
@@ -261,7 +260,7 @@ const COPY = {
     attachmentCount: 'attachment(s)',
     buUnassigned: 'BU unassigned',
     submitterDoctor: 'Submitting physician',
-    editModeOrchestrator: 'Edit Mode - Orchestrator',
+    editModeOrchestrator: 'Edit Mode - Manager',
     editModePI: 'Edit my idea',
     updateSuccess: 'Update successful.',
     ideaTitleEditable: 'Idea title (Editable)',
@@ -276,7 +275,7 @@ const COPY = {
     update: 'Update',
     close: 'Close',
     saveChanges: 'Save changes',
-    footerSync: 'Data synchronized via Supabase. Demo version 2026.',
+    footerSync: 'Data synchronized online. Demo version 2026.',
     logoutTitle: 'Sign out',
     titleRequired: 'Please enter a title.',
     modalityRequired: 'Please select a Philips modality.',
@@ -284,15 +283,15 @@ const COPY = {
     solutionTooLong: 'The proposed solution exceeds 1500 characters.',
     ideaSaved: 'Your idea was saved online!',
     ideaSaveError: 'Online save error.',
-    ideaNotSavedNoSupabase: 'Supabase is not configured. The idea was not saved.',
+    ideaNotSavedNoSupabase: 'The online service is not configured. The idea was not saved.',
     loginSuccess: 'Signed in successfully!',
     loginInvalid: 'Sign-in failed: email or password is incorrect.',
     loginError: 'Sign-in failed. Check your credentials.',
-    supabaseLoginMissing: 'Supabase is not configured. Data must be stored online for multi-computer testing.',
+    supabaseLoginMissing: 'The online service is not configured. Data must be stored online for multi-computer testing.',
     signupSuccess: 'Account created, signing in...',
-    signupConfirmEmail: 'Account created. If sign-in is not automatic, disable email confirmation in Supabase.',
+    signupConfirmEmail: 'Account created. If sign-in is not automatic, disable email confirmation in the portal configuration.',
     signupError: 'Sign-up error.',
-    signupMissingSupabase: 'Supabase is not configured. Account creation is unavailable without cloud sync.',
+    signupMissingSupabase: 'The online service is not configured. Account creation is unavailable without cloud sync.',
     logoutSuccess: 'Signed out.',
     syncIdeasError: 'Unable to sync ideas.',
     filesAttached: 'file(s) attached successfully.',
@@ -301,16 +300,15 @@ const COPY = {
     updateTitleRequired: 'Title cannot be empty.',
     updateSaved: 'Update saved online!',
     updateError: 'Online update error.',
-    archiveConfirm: 'Archive this idea? It will disappear from the orchestrator dashboard.',
     archiveConfirmTitle: 'Archive this idea?',
-    archiveConfirmBody: 'It will remain available in archived ideas, but will disappear from the active orchestrator dashboard.',
+    archiveConfirmBody: 'It will remain available in your archived ideas.',
     cancel: 'Cancel',
     confirmArchive: 'Archive',
     activeIdeas: 'Active ideas',
     ideaArchived: 'Idea archived.',
     ideaUpdated: 'Idea updated.',
     chars: 'chars',
-    roleOrchestrator: 'Orchestrator',
+    roleOrchestrator: 'Manager',
     rolePI: 'PI',
     unspecified: 'Not specified',
     anonymousDoctor: 'Anonymous physician',
@@ -674,7 +672,7 @@ export default function App() {
     }
   }, [fetchIdeasFromSupabase]);
 
-  // 1. Session check on Mount (Supabase)
+  // 1. Session check on mount
   useEffect(() => {
     if (supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
@@ -723,7 +721,7 @@ export default function App() {
     e.preventDefault();
     if (authMode === 'login') {
       if (supabase) {
-        // Real Supabase Sign In
+        // Online sign in
         setAuthSubmitting(true);
         try {
           const { error } = await supabase.auth.signInWithPassword({
@@ -745,7 +743,7 @@ export default function App() {
       }
     } else {
       if (supabase) {
-        // Real Supabase Sign Up
+        // Online sign up
         setAuthSubmitting(true);
         try {
           const { data, error } = await supabase.auth.signUp({
@@ -951,7 +949,7 @@ export default function App() {
         setIdeas([newIdea, ...ideas]);
         showToast(t('ideaSaved'), "success");
       } catch (err) {
-        console.error("Error saving idea to Supabase:", err);
+        console.error("Error saving idea to online service:", err);
         showToast(err.message || t('ideaSaveError'), "error");
       }
     } else {
@@ -1024,7 +1022,7 @@ export default function App() {
         setSelectedIdea(savedIdea);
         showToast(isPIEditor ? t('ideaUpdated') : t('updateSaved'), "success");
       } catch (err) {
-        console.error("Error updating idea in Supabase:", err);
+        console.error("Error updating idea in online service:", err);
         showToast(err.message || t('updateError'), "error");
         return;
       }
@@ -1075,7 +1073,7 @@ export default function App() {
           setSelectedIdea(archivedIdea);
         }
       } catch (err) {
-        console.error("Error archiving idea in Supabase:", err);
+        console.error("Error archiving idea in online service:", err);
         showToast(err.message || t('updateError'), "error");
         return;
       }
