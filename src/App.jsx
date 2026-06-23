@@ -171,6 +171,11 @@ const COPY = {
     updateSaved: 'Mise à jour enregistrée en ligne !',
     updateError: 'Erreur de mise à jour en ligne.',
     archiveConfirm: 'Archiver cette idée ? Elle disparaîtra du tableau de bord orchestrateur.',
+    archiveConfirmTitle: 'Archiver cette idée ?',
+    archiveConfirmBody: "Elle restera consultable dans les idées archivées, mais disparaîtra du tableau de bord actif de l'orchestrateur.",
+    cancel: 'Annuler',
+    confirmArchive: 'Archiver',
+    activeIdeas: 'Idées actives',
     ideaArchived: 'Idée archivée.',
     ideaUpdated: 'Idée mise à jour.',
     chars: 'car.',
@@ -297,6 +302,11 @@ const COPY = {
     updateSaved: 'Update saved online!',
     updateError: 'Online update error.',
     archiveConfirm: 'Archive this idea? It will disappear from the orchestrator dashboard.',
+    archiveConfirmTitle: 'Archive this idea?',
+    archiveConfirmBody: 'It will remain available in archived ideas, but will disappear from the active orchestrator dashboard.',
+    cancel: 'Cancel',
+    confirmArchive: 'Archive',
+    activeIdeas: 'Active ideas',
     ideaArchived: 'Idea archived.',
     ideaUpdated: 'Idea updated.',
     chars: 'chars',
@@ -595,6 +605,8 @@ export default function App() {
   // Notifications states
   const [toast, setToast] = useState(null);
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [pendingArchiveIdea, setPendingArchiveIdea] = useState(null);
+  const [orchestratorTab, setOrchestratorTab] = useState('active'); // 'active' | 'archived'
 
   // Toast notifier
   const showToast = useCallback((message, type = 'success') => {
@@ -616,9 +628,9 @@ export default function App() {
       setIdeas(data.map(mapSupabaseIdea));
     } catch (err) {
       console.error("Error fetching ideas:", err);
-      showToast(t('syncIdeasError'), "error");
+      showToast(COPY.fr.syncIdeasError, "error");
     }
-  }, [showToast, t]);
+  }, [showToast]);
 
   const fetchSupabaseProfile = useCallback(async (supabaseUser) => {
     try {
@@ -641,8 +653,8 @@ export default function App() {
         setUser({
           id: supabaseUser.id,
           email: supabaseUser.email,
-          name: meta.name || t('userAccount'),
-          hospital: meta.hospital || t('unspecified'),
+          name: meta.name || COPY.fr.userAccount,
+          hospital: meta.hospital || COPY.fr.unspecified,
           role: meta.role || 'pi'
         });
       }
@@ -652,15 +664,15 @@ export default function App() {
       setUser({
         id: supabaseUser.id,
         email: supabaseUser.email,
-        name: meta.name || t('userAccount'),
-        hospital: meta.hospital || t('unspecified'),
+        name: meta.name || COPY.fr.userAccount,
+        hospital: meta.hospital || COPY.fr.unspecified,
         role: meta.role || 'pi'
       });
     } finally {
       await fetchIdeasFromSupabase();
       setAuthLoading(false);
     }
-  }, [fetchIdeasFromSupabase, t]);
+  }, [fetchIdeasFromSupabase]);
 
   // 1. Session check on Mount (Supabase)
   useEffect(() => {
@@ -792,6 +804,10 @@ export default function App() {
 
   // Dashboard calculations for orchestrator
   const activeOrchestratorIdeas = ideas.filter(i => i.status !== 'Archivé');
+  const archivedOrchestratorIdeas = ideas.filter(i => i.status === 'Archivé');
+  const visibleOrchestratorIdeas = orchestratorTab === 'archived'
+    ? archivedOrchestratorIdeas
+    : activeOrchestratorIdeas;
   const orchestratorStatuses = STATUSES.filter(status => status !== 'Archivé');
   const totalIdeas = activeOrchestratorIdeas.length;
   const inEvaluationCount = activeOrchestratorIdeas.filter(i => i.status === 'En évaluation').length;
@@ -976,7 +992,7 @@ export default function App() {
 
     if (supabase) {
       try {
-        let query = supabase
+        const query = supabase
           .from('ideas')
           .update(isPIEditor ? {
             title: editTitle,
@@ -992,16 +1008,20 @@ export default function App() {
             feedback: editFeedback,
             business_unit: editBusinessUnit
           })
-          .eq('id', selectedIdea.id);
+          .eq('id', selectedIdea.id)
+          .select('*')
+          .single();
 
-        if (isPIEditor) {
-          query = query.or(`user_id.eq.${user?.id},pi_email.eq.${user?.email}`);
-        }
-
-        const { error } = await query;
+        const { data, error } = await query;
 
         if (error) throw error;
+        if (!data) throw new Error(t('updateError'));
 
+        const savedIdea = mapSupabaseIdea(data);
+        setIdeas(prev => prev.map(idea => (
+          idea.id === savedIdea.id ? savedIdea : idea
+        )));
+        setSelectedIdea(savedIdea);
         showToast(isPIEditor ? t('ideaUpdated') : t('updateSaved'), "success");
       } catch (err) {
         console.error("Error updating idea in Supabase:", err);
@@ -1010,23 +1030,15 @@ export default function App() {
       }
     }
 
-    const updatedIdeas = ideas.map(idea => {
-      if (idea.id === selectedIdea.id) {
-        return {
-          ...idea,
-          ...updatedFields
-        };
-      }
-      return idea;
-    });
-
-    setIdeas(updatedIdeas);
-    
-    // Update selected idea reference in view
-    setSelectedIdea(prev => ({
-      ...prev,
-      ...updatedFields
-    }));
+    if (!supabase) {
+      setIdeas(prev => prev.map(idea => (
+        idea.id === selectedIdea.id ? { ...idea, ...updatedFields } : idea
+      )));
+      setSelectedIdea(prev => ({
+        ...prev,
+        ...updatedFields
+      }));
+    }
 
     // Trigger explicit confirmation message
     setShowUpdateConfirmation(true);
@@ -1036,31 +1048,46 @@ export default function App() {
     }, 4000);
   };
 
-  const handleArchiveIdea = async (idea) => {
-    if (!idea || !window.confirm(t('archiveConfirm'))) return;
+  const requestArchiveIdea = (idea) => {
+    setPendingArchiveIdea(idea);
+  };
+
+  const confirmArchiveIdea = async () => {
+    const idea = pendingArchiveIdea;
+    if (!idea) return;
 
     if (supabase) {
       try {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('ideas')
           .update({ status: 'Archivé' })
           .eq('id', idea.id)
-          .or(`user_id.eq.${user?.id},pi_email.eq.${user?.email}`);
+          .select('*')
+          .single();
 
         if (error) throw error;
+        if (!data) throw new Error(t('updateError'));
+        const archivedIdea = mapSupabaseIdea(data);
+        setIdeas(prev => prev.map(item => (
+          item.id === archivedIdea.id ? archivedIdea : item
+        )));
+        if (selectedIdea?.id === archivedIdea.id) {
+          setSelectedIdea(archivedIdea);
+        }
       } catch (err) {
         console.error("Error archiving idea in Supabase:", err);
         showToast(err.message || t('updateError'), "error");
         return;
       }
+    } else {
+      setIdeas(prev => prev.map(item => (
+        item.id === idea.id ? { ...item, status: 'Archivé' } : item
+      )));
+      if (selectedIdea?.id === idea.id) {
+        setSelectedIdea(prev => prev ? { ...prev, status: 'Archivé' } : prev);
+      }
     }
-
-    setIdeas(prev => prev.map(item => (
-      item.id === idea.id ? { ...item, status: 'Archivé' } : item
-    )));
-    if (selectedIdea?.id === idea.id) {
-      setSelectedIdea(prev => prev ? { ...prev, status: 'Archivé' } : prev);
-    }
+    setPendingArchiveIdea(null);
     showToast(t('ideaArchived'), "success");
   };
 
@@ -1091,14 +1118,14 @@ export default function App() {
   });
 
   // Filter ideas for Orchestrator
-  const filteredOrchestratorIdeas = activeOrchestratorIdeas.filter(idea => {
+  const filteredOrchestratorIdeas = visibleOrchestratorIdeas.filter(idea => {
     const matchesSearch = 
       idea.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       idea.piName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       idea.piHospital.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (idea.feedback && idea.feedback.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = statusFilter === 'Tous' || idea.status === statusFilter;
+    const matchesStatus = orchestratorTab === 'archived' || statusFilter === 'Tous' || idea.status === statusFilter;
     const matchesBU = buFilter === 'Tous' || idea.businessUnit === buFilter;
 
     return matchesSearch && matchesStatus && matchesBU;
@@ -1359,6 +1386,48 @@ export default function App() {
             <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-slate-600">
               <X className="w-4 h-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {pendingArchiveIdea && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            onClick={() => setPendingArchiveIdea(null)}
+          />
+          <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-fadeIn">
+            <div className="p-6 text-left">
+              <div className="w-10 h-10 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-600 mb-4">
+                <Archive className="w-5 h-5" />
+              </div>
+              <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                {t('archiveConfirmTitle')}
+              </h3>
+              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                {t('archiveConfirmBody')}
+              </p>
+              <p className="text-sm font-bold text-slate-800 mt-4 line-clamp-2">
+                {pendingArchiveIdea.title}
+              </p>
+            </div>
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setPendingArchiveIdea(null)}
+                className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-100 text-slate-700 rounded-xl text-sm font-bold transition cursor-pointer"
+              >
+                {t('cancel')}
+              </button>
+              <button
+                type="button"
+                onClick={confirmArchiveIdea}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-sm font-bold transition cursor-pointer flex items-center gap-2"
+              >
+                <Archive className="w-4 h-4" />
+                {t('confirmArchive')}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1685,7 +1754,7 @@ export default function App() {
                               {idea.status !== 'Archivé' && (
                                 <button
                                   type="button"
-                                  onClick={() => handleArchiveIdea(idea)}
+                                  onClick={() => requestArchiveIdea(idea)}
                                   className="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-slate-200 hover:border-rose-300 hover:text-rose-700 rounded-full text-xs font-bold text-slate-600 transition"
                                 >
                                   <Archive className="w-3 h-3" />
@@ -1818,7 +1887,37 @@ export default function App() {
             </div>
 
             <div className="space-y-5">
-              
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrchestratorTab('active');
+                    setStatusFilter('Tous');
+                  }}
+                  className={`px-4 py-1 rounded-full text-sm font-medium transition-all ${
+                    orchestratorTab === 'active'
+                      ? 'bg-philips-blue text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t('activeIdeas')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOrchestratorTab('archived');
+                    setStatusFilter('Tous');
+                  }}
+                  className={`px-4 py-1 rounded-full text-sm font-medium transition-all ${
+                    orchestratorTab === 'archived'
+                      ? 'bg-philips-blue text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                >
+                  {t('archivedIdeas')}
+                </button>
+              </div>
+
               {/* Filters Panel */}
               <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-premium flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 
@@ -1868,8 +1967,8 @@ export default function App() {
                     >
                       {t('all')}
                     </button>
-                    {orchestratorStatuses.map(status => {
-                      const count = activeOrchestratorIdeas.filter(i => i.status === status).length;
+                    {(orchestratorTab === 'archived' ? ['Archivé'] : orchestratorStatuses).map(status => {
+                      const count = visibleOrchestratorIdeas.filter(i => i.status === status).length;
                       return (
                         <button
                           key={status}
@@ -2234,7 +2333,7 @@ export default function App() {
                 {role === 'pi' && selectedIdea.status !== 'Archivé' && (
                   <button
                     type="button"
-                    onClick={() => handleArchiveIdea(selectedIdea)}
+                    onClick={() => requestArchiveIdea(selectedIdea)}
                     className="px-5 py-3 border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-xl text-sm font-bold transition cursor-pointer flex items-center gap-2"
                   >
                     <Archive className="w-4 h-4" />
