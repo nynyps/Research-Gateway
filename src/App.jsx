@@ -2451,16 +2451,7 @@ export default function App() {
                                 ))}
                               </select>
                             </div>
-                            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                              <div>
-                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                                  {t('submitterDoctor')}
-                                </span>
-                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-                                  <p className="text-sm font-extrabold text-slate-900">{selectedIdea.piName}</p>
-                                  <p className="text-xs text-slate-500 mt-0.5">{selectedIdea.piHospital}</p>
-                                </div>
-                              </div>
+                            <div className="lg:col-span-2">
                               <div>
                                 <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
                                   Date
@@ -2755,6 +2746,16 @@ export default function App() {
                       <ChevronRight className="w-4 h-4" />
                       {t('advanceFunnel')}
                     </button>
+                    {selectedIdea.status !== 'Archivé' && (
+                      <button
+                        type="button"
+                        onClick={() => requestArchiveIdea(selectedIdea)}
+                        className="sm:flex-none px-5 py-3 border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-xl text-sm font-bold transition cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        <Archive className="w-4 h-4" />
+                        {t('archive')}
+                      </button>
+                    )}
                   </div>
                 </>
               ) : (
