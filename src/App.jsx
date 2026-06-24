@@ -168,6 +168,9 @@ const COPY = {
     officialPiWarning: '⚠️ Ce message sera visible par le PI sur son tableau de bord.',
     saveInternalData: 'Mettre à jour les données internes',
     advanceFunnel: "Passer à l'étape suivante du Funnel",
+    currentCaseStatus: 'Statut courant du dossier',
+    viewedWorkflowStep: 'Étape consultée',
+    viewedWorkflowStepHelp: 'Consultez ou complétez les données de chaque phase sans changer le statut courant.',
     update: 'Mettre à jour',
     close: 'Fermer',
     saveChanges: 'Enregistrer',
@@ -324,6 +327,9 @@ const COPY = {
     officialPiWarning: '⚠️ This message will be visible to the PI on their dashboard.',
     saveInternalData: 'Update internal data',
     advanceFunnel: 'Move to the next funnel step',
+    currentCaseStatus: 'Current case status',
+    viewedWorkflowStep: 'Viewed step',
+    viewedWorkflowStepHelp: 'Review or complete each phase without changing the current status.',
     update: 'Update',
     close: 'Close',
     saveChanges: 'Save changes',
@@ -624,6 +630,7 @@ const mapSupabaseIdea = (item) => ({
   piEmail: item.pi_email,
   submittedAt: item.submitted_at,
   feedback: item.feedback_philips ?? item.feedback ?? '',
+  adminInternalData: item.admin_internal_data || {},
   attachments: item.attachments || [],
   userId: item.user_id
 });
@@ -662,6 +669,7 @@ export default function App() {
   const [editStatus, setEditStatus] = useState('');
   const [editFeedback, setEditFeedback] = useState('');
   const [editBusinessUnit, setEditBusinessUnit] = useState('');
+  const [adminReviewStep, setAdminReviewStep] = useState('Soumis');
   const [adminInternalDataByIdea, setAdminInternalDataByIdea] = useState({});
 
   // PI submission form states
@@ -1033,6 +1041,7 @@ export default function App() {
             pi_email: newIdea.piEmail,
             submitted_at: newIdea.submittedAt,
             feedback_philips: newIdea.feedback,
+            admin_internal_data: {},
             attachments: newIdea.attachments,
             user_id: user?.id
           }]);
@@ -1062,6 +1071,7 @@ export default function App() {
     if (!selectedIdea) return;
 
     const targetStatus = advanceFunnel ? getNextFunnelStatus(editStatus) : editStatus;
+    const nextInternalData = getAdminInternalData(selectedIdea.id);
 
     if (supabase) {
       try {
@@ -1069,7 +1079,8 @@ export default function App() {
           .from('ideas')
           .update({
             status: targetStatus,
-            feedback_philips: editFeedback
+            feedback_philips: editFeedback,
+            admin_internal_data: nextInternalData
           })
           .eq('id', selectedIdea.id)
           .select('*')
@@ -1085,6 +1096,16 @@ export default function App() {
         setSelectedIdea(savedIdea);
         setEditStatus(savedIdea.status);
         setEditFeedback(savedIdea.feedback || '');
+        setAdminInternalDataByIdea(prev => ({
+          ...prev,
+          [savedIdea.id]: {
+            ...ADMIN_INTERNAL_DEFAULTS,
+            ...(savedIdea.adminInternalData || nextInternalData)
+          }
+        }));
+        if (advanceFunnel) {
+          setAdminReviewStep(savedIdea.status);
+        }
         showToast(t('updateSaved'), "success");
       } catch (err) {
         console.error("Error updating admin fields in online service:", err);
@@ -1094,13 +1115,17 @@ export default function App() {
     } else {
       const updatedFields = {
         status: targetStatus,
-        feedback: editFeedback
+        feedback: editFeedback,
+        adminInternalData: nextInternalData
       };
       setIdeas(prev => prev.map(idea => (
         idea.id === selectedIdea.id ? { ...idea, ...updatedFields } : idea
       )));
       setSelectedIdea(prev => prev ? { ...prev, ...updatedFields } : prev);
       setEditStatus(targetStatus);
+      if (advanceFunnel) {
+        setAdminReviewStep(targetStatus);
+      }
     }
 
     setShowUpdateConfirmation(true);
@@ -1232,6 +1257,14 @@ export default function App() {
     setEditStatus(idea.status);
     setEditFeedback(idea.feedback || '');
     setEditBusinessUnit(idea.businessUnit || '');
+    setAdminReviewStep(FUNNEL_STEPS.some(step => step.key === idea.status) ? idea.status : 'Soumis');
+    setAdminInternalDataByIdea(prev => ({
+      ...prev,
+      [idea.id]: {
+        ...ADMIN_INTERNAL_DEFAULTS,
+        ...(idea.adminInternalData || prev[idea.id] || {})
+      }
+    }));
     setShowUpdateConfirmation(false);
   };
 
@@ -2321,8 +2354,51 @@ export default function App() {
                       </span>
                     </div>
 
+                    <div className="p-5 border-b border-slate-100 space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {t('currentCaseStatus')}
+                          </label>
+                          <select
+                            value={editStatus}
+                            onChange={(e) => setEditStatus(e.target.value)}
+                            className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                          >
+                            {STATUSES.map(status => (
+                              <option key={status} value={status}>{statusLabel(status)}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                            {t('viewedWorkflowStep')}
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {FUNNEL_STEPS.map(step => (
+                              <button
+                                key={step.key}
+                                type="button"
+                                onClick={() => setAdminReviewStep(step.key)}
+                                className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black border transition ${
+                                  adminReviewStep === step.key
+                                    ? 'bg-philips-blue border-philips-blue text-white shadow-sm'
+                                    : 'bg-white border-slate-200 text-slate-500 hover:text-slate-800 hover:border-slate-300'
+                                }`}
+                              >
+                                {STATUS_SHORT_LABELS[lang][step.key] || statusLabel(step.key)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-400 leading-relaxed">
+                        {t('viewedWorkflowStepHelp')}
+                      </p>
+                    </div>
+
                     <div className="p-5 space-y-5 divide-y divide-slate-100">
-                      {editStatus === 'Soumis' && (
+                      {adminReviewStep === 'Soumis' && (
                         <section className="space-y-4">
                           <div>
                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
@@ -2378,7 +2454,7 @@ export default function App() {
                         </section>
                       )}
 
-                      {editStatus === 'En évaluation' && (
+                      {adminReviewStep === 'En évaluation' && (
                         <section className="space-y-4 pt-5 first:pt-0">
                           <div>
                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
@@ -2439,7 +2515,7 @@ export default function App() {
                         </section>
                       )}
 
-                      {editStatus === 'Chiffrage Ressources' && (
+                      {adminReviewStep === 'Chiffrage Ressources' && (
                         <section className="space-y-4 pt-5 first:pt-0">
                           <div>
                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
@@ -2479,7 +2555,7 @@ export default function App() {
                         </section>
                       )}
 
-                      {editStatus === 'Arbitrage Philips' && (
+                      {adminReviewStep === 'Arbitrage Philips' && (
                         <section className="space-y-4 pt-5 first:pt-0">
                           <div>
                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
@@ -2522,7 +2598,7 @@ export default function App() {
                         </section>
                       )}
 
-                      {(editStatus === 'Approuvé' || editStatus === 'Archivé') && (
+                      {adminReviewStep === 'Approuvé' && (
                         <section className="space-y-2">
                           <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
                             {t('finalizedCase')}
