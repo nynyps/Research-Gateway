@@ -145,22 +145,26 @@ const COPY = {
     internalWorkNotes: 'Notes de travail internes',
     caseManagement: 'Gestion du dossier',
     triageNotes: 'Notes de Tri',
-    triageDescription: 'Qualification initiale avant évaluation.',
-    assignExpert: "Assigner l'expert",
-    priority: 'Priorité',
+    triageDescription: 'Lecture de la soumission PI et qualification initiale.',
+    piSubmission: 'Soumission du PI',
+    piSubmissionHelp: 'Données transmises par le PI, non modifiées dans le panneau admin.',
+    businessUnitAssignment: 'Assignation Business Unit',
     scientificEvaluation: 'Évaluation Scientifique',
     scientificEvaluationDescription: 'Avis clinique et points de vigilance internes.',
     clinicalRelevance: 'Pertinence Clinique',
     clinicalScientistComments: 'Commentaires du Clinical Scientist',
     ipAlert: 'Alerte Propriété Intellectuelle',
+    ipAlertComment: "Commentaire sur l'alerte PI",
     resourceSizing: 'Chiffrage',
     resourceSizingDescription: 'Estimation des moyens nécessaires.',
     estimatedBudget: 'Budget Estimé (€)',
     resourcesFte: 'Ressources nécessaires (FTE)',
+    resourceSizingComments: 'Commentaires de chiffrage',
     arbitration: 'Arbitrage',
     arbitrationDescription: 'Lecture stratégique et financement.',
     roadmapFit: 'Adéquation Roadmap',
     fundingSource: 'Source de Financement',
+    arbitrationComments: "Commentaires d'arbitrage",
     finalizedCase: 'Dossier finalisé',
     finalizedCaseBody: "Aucun champ interne supplémentaire n'est requis pour ce statut.",
     officialPiMessage: 'Message officiel pour le PI',
@@ -304,22 +308,26 @@ const COPY = {
     internalWorkNotes: 'Internal work notes',
     caseManagement: 'Case management',
     triageNotes: 'Triage Notes',
-    triageDescription: 'Initial qualification before evaluation.',
-    assignExpert: 'Assign expert',
-    priority: 'Priority',
+    triageDescription: 'PI submission review and initial qualification.',
+    piSubmission: 'PI submission',
+    piSubmissionHelp: 'Data submitted by the PI, not edited from the admin drawer.',
+    businessUnitAssignment: 'Business Unit assignment',
     scientificEvaluation: 'Scientific Evaluation',
     scientificEvaluationDescription: 'Clinical opinion and internal watch points.',
     clinicalRelevance: 'Clinical Relevance',
     clinicalScientistComments: 'Clinical Scientist Comments',
     ipAlert: 'Intellectual Property Alert',
+    ipAlertComment: 'IP alert comment',
     resourceSizing: 'Resource Sizing',
     resourceSizingDescription: 'Estimated resources required.',
     estimatedBudget: 'Estimated Budget (€)',
     resourcesFte: 'Required resources (FTE)',
+    resourceSizingComments: 'Resource sizing comments',
     arbitration: 'Arbitration',
     arbitrationDescription: 'Strategic fit and funding review.',
     roadmapFit: 'Roadmap Fit',
     fundingSource: 'Funding Source',
+    arbitrationComments: 'Arbitration comments',
     finalizedCase: 'Finalized case',
     finalizedCaseBody: 'No additional internal field is required for this status.',
     officialPiMessage: 'Official message for the PI',
@@ -454,19 +462,18 @@ const FUNNEL_STEPS = [
 ];
 
 const ADMIN_INTERNAL_DEFAULTS = {
-  expert: 'Expert IRM',
-  priority: 'Moyenne',
   clinicalRelevance: 3,
   scientistComments: '',
   ipAlert: false,
+  ipAlertComment: '',
   estimatedBudget: '',
   resourcesFte: '',
+  resourceSizingComments: '',
   roadmapFit: 'Moyen',
-  fundingSource: 'R&D'
+  fundingSource: 'R&D',
+  arbitrationComments: ''
 };
 
-const ADMIN_EXPERTS = ['Expert IRM', 'Expert Écho', 'Expert Monitorage'];
-const ADMIN_PRIORITIES = ['Basse', 'Moyenne', 'Haute'];
 const ADMIN_ROADMAP_FITS = ['Excellent', 'Moyen', 'Hors-Sujet'];
 const ADMIN_FUNDING_SOURCES = ['R&D', 'Business Unit', 'Externe'];
 
@@ -1080,6 +1087,7 @@ export default function App() {
           .update({
             status: targetStatus,
             feedback_philips: editFeedback,
+            business_unit: editBusinessUnit,
             admin_internal_data: nextInternalData
           })
           .eq('id', selectedIdea.id)
@@ -1096,6 +1104,7 @@ export default function App() {
         setSelectedIdea(savedIdea);
         setEditStatus(savedIdea.status);
         setEditFeedback(savedIdea.feedback || '');
+        setEditBusinessUnit(savedIdea.businessUnit || '');
         setAdminInternalDataByIdea(prev => ({
           ...prev,
           [savedIdea.id]: {
@@ -1116,6 +1125,7 @@ export default function App() {
       const updatedFields = {
         status: targetStatus,
         feedback: editFeedback,
+        businessUnit: editBusinessUnit,
         adminInternalData: nextInternalData
       };
       setIdeas(prev => prev.map(idea => (
@@ -2285,7 +2295,7 @@ export default function App() {
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300" 
           />
 
-          <div className="relative w-full max-w-2xl bg-white shadow-2xl flex flex-col h-full z-10 transition-transform duration-300 ease-in-out transform translate-x-0 border-l border-slate-200">
+          <div className="relative w-full max-w-5xl bg-white shadow-2xl flex flex-col h-full z-10 transition-transform duration-300 ease-in-out transform translate-x-0 border-l border-slate-200">
             
             {/* Header */}
             <div className="bg-slate-900 text-white p-6 flex items-center justify-between">
@@ -2402,52 +2412,84 @@ export default function App() {
                         <section className="space-y-4">
                           <div>
                             <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                              {t('triageNotes')}
+                              {t('piSubmission')}
                             </h5>
                             <p className="text-xs text-slate-400 mt-1">
-                              {t('triageDescription')}
+                              {t('piSubmissionHelp')}
                             </p>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="lg:col-span-2 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('ideaTitle')}
+                              </span>
+                              <p className="text-sm font-extrabold text-slate-900 leading-snug">
+                                {selectedIdea.title}
+                              </p>
+                            </div>
+                            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('clinicalModality')}
+                              </span>
+                              <p className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                                {getModalityIcon(selectedIdea.modality)}
+                                {modalityLabel(selectedIdea.modality)}
+                              </p>
+                            </div>
                             <div>
                               <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                                {t('assignExpert')}
+                                {t('businessUnitAssignment')}
                               </label>
                               <select
-                                value={getAdminInternalData(selectedIdea.id).expert}
-                                onChange={(e) => updateAdminInternalField('expert', e.target.value)}
+                                value={editBusinessUnit}
+                                onChange={(e) => setEditBusinessUnit(e.target.value)}
                                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
                               >
-                                {ADMIN_EXPERTS.map(expert => (
-                                  <option key={expert} value={expert}>{expert}</option>
+                                <option value="">{t('selectBU')}</option>
+                                {BUSINESS_UNITS.map(bu => (
+                                  <option key={bu} value={bu}>{bu}</option>
                                 ))}
                               </select>
                             </div>
+                            <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                  {t('submitterDoctor')}
+                                </span>
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                  <p className="text-sm font-extrabold text-slate-900">{selectedIdea.piName}</p>
+                                  <p className="text-xs text-slate-500 mt-0.5">{selectedIdea.piHospital}</p>
+                                </div>
+                              </div>
+                              <div>
+                                <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                  Date
+                                </span>
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                                  <p className="text-sm font-extrabold text-slate-900">
+                                    {new Date(selectedIdea.submittedAt).toLocaleDateString(dateLocale, {
+                                      day: '2-digit', month: 'short', year: 'numeric'
+                                    })}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <div>
                               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
-                                {t('priority')}
+                                {t('clinicalProblem')}
                               </span>
-                              <div className="grid grid-cols-3 gap-2">
-                                {ADMIN_PRIORITIES.map(priority => (
-                                  <label
-                                    key={priority}
-                                    className={`px-2.5 py-2 rounded-xl border text-xs font-bold cursor-pointer text-center transition ${
-                                      getAdminInternalData(selectedIdea.id).priority === priority
-                                        ? 'border-philips-blue bg-blue-50 text-philips-blue'
-                                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-                                    }`}
-                                  >
-                                    <input
-                                      type="radio"
-                                      name="admin-priority"
-                                      value={priority}
-                                      checked={getAdminInternalData(selectedIdea.id).priority === priority}
-                                      onChange={(e) => updateAdminInternalField('priority', e.target.value)}
-                                      className="sr-only"
-                                    />
-                                    {priority}
-                                  </label>
-                                ))}
+                              <div className="min-h-36 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                {selectedIdea.problem}
+                              </div>
+                            </div>
+                            <div>
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('proposedSolution')}
+                              </span>
+                              <div className="min-h-36 p-4 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">
+                                {selectedIdea.solution}
                               </div>
                             </div>
                           </div>
@@ -2512,6 +2554,19 @@ export default function App() {
                               }`} />
                             </span>
                           </label>
+                          {getAdminInternalData(selectedIdea.id).ipAlert && (
+                            <div>
+                              <label className="block text-[10px] font-bold text-amber-700 uppercase tracking-wider mb-1.5">
+                                {t('ipAlertComment')}
+                              </label>
+                              <textarea
+                                rows={3}
+                                value={getAdminInternalData(selectedIdea.id).ipAlertComment}
+                                onChange={(e) => updateAdminInternalField('ipAlertComment', e.target.value)}
+                                className="w-full px-4 py-3 border border-amber-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition bg-amber-50/40 resize-none"
+                              />
+                            </div>
+                          )}
                         </section>
                       )}
 
@@ -2551,6 +2606,17 @@ export default function App() {
                                 className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
                               />
                             </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {t('resourceSizingComments')}
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={getAdminInternalData(selectedIdea.id).resourceSizingComments}
+                              onChange={(e) => updateAdminInternalField('resourceSizingComments', e.target.value)}
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none"
+                            />
                           </div>
                         </section>
                       )}
@@ -2594,6 +2660,17 @@ export default function App() {
                                 ))}
                               </select>
                             </div>
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {t('arbitrationComments')}
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={getAdminInternalData(selectedIdea.id).arbitrationComments}
+                              onChange={(e) => updateAdminInternalField('arbitrationComments', e.target.value)}
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none"
+                            />
                           </div>
                         </section>
                       )}
