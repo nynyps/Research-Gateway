@@ -142,6 +142,32 @@ const COPY = {
     doctorAttachments: 'Pièces jointes par le médecin (cliquez pour télécharger) :',
     feedbackVisible: 'Feedback Interne / Externe (Visible par le PI)',
     feedbackPlaceholder: "Écrivez vos commentaires sur la faisabilité, les étapes de chiffrage ou la décision finale...",
+    internalWorkNotes: 'Notes de travail internes',
+    caseManagement: 'Gestion du dossier',
+    triageNotes: 'Notes de Tri',
+    triageDescription: 'Qualification initiale avant évaluation.',
+    assignExpert: "Assigner l'expert",
+    priority: 'Priorité',
+    scientificEvaluation: 'Évaluation Scientifique',
+    scientificEvaluationDescription: 'Avis clinique et points de vigilance internes.',
+    clinicalRelevance: 'Pertinence Clinique',
+    clinicalScientistComments: 'Commentaires du Clinical Scientist',
+    ipAlert: 'Alerte Propriété Intellectuelle',
+    resourceSizing: 'Chiffrage',
+    resourceSizingDescription: 'Estimation des moyens nécessaires.',
+    estimatedBudget: 'Budget Estimé (€)',
+    resourcesFte: 'Ressources nécessaires (FTE)',
+    arbitration: 'Arbitrage',
+    arbitrationDescription: 'Lecture stratégique et financement.',
+    roadmapFit: 'Adéquation Roadmap',
+    fundingSource: 'Source de Financement',
+    finalizedCase: 'Dossier finalisé',
+    finalizedCaseBody: "Aucun champ interne supplémentaire n'est requis pour ce statut.",
+    officialPiMessage: 'Message officiel pour le PI',
+    officialPiMessageHelp: 'Ce champ alimente le feedback affiché dans le tableau du PI.',
+    officialPiWarning: '⚠️ Ce message sera visible par le PI sur son tableau de bord.',
+    saveInternalData: 'Mettre à jour les données internes',
+    advanceFunnel: "Passer à l'étape suivante du Funnel",
     update: 'Mettre à jour',
     close: 'Fermer',
     saveChanges: 'Enregistrer',
@@ -272,6 +298,32 @@ const COPY = {
     doctorAttachments: 'Files attached by the physician (click to download):',
     feedbackVisible: 'Internal / External feedback (Visible to the PI)',
     feedbackPlaceholder: 'Write comments on feasibility, resource sizing steps, or the final decision...',
+    internalWorkNotes: 'Internal work notes',
+    caseManagement: 'Case management',
+    triageNotes: 'Triage Notes',
+    triageDescription: 'Initial qualification before evaluation.',
+    assignExpert: 'Assign expert',
+    priority: 'Priority',
+    scientificEvaluation: 'Scientific Evaluation',
+    scientificEvaluationDescription: 'Clinical opinion and internal watch points.',
+    clinicalRelevance: 'Clinical Relevance',
+    clinicalScientistComments: 'Clinical Scientist Comments',
+    ipAlert: 'Intellectual Property Alert',
+    resourceSizing: 'Resource Sizing',
+    resourceSizingDescription: 'Estimated resources required.',
+    estimatedBudget: 'Estimated Budget (€)',
+    resourcesFte: 'Required resources (FTE)',
+    arbitration: 'Arbitration',
+    arbitrationDescription: 'Strategic fit and funding review.',
+    roadmapFit: 'Roadmap Fit',
+    fundingSource: 'Funding Source',
+    finalizedCase: 'Finalized case',
+    finalizedCaseBody: 'No additional internal field is required for this status.',
+    officialPiMessage: 'Official message for the PI',
+    officialPiMessageHelp: 'This field updates the feedback shown in the PI dashboard.',
+    officialPiWarning: '⚠️ This message will be visible to the PI on their dashboard.',
+    saveInternalData: 'Update internal data',
+    advanceFunnel: 'Move to the next funnel step',
     update: 'Update',
     close: 'Close',
     saveChanges: 'Save changes',
@@ -394,6 +446,29 @@ const FUNNEL_STEPS = [
   { key: 'Arbitrage Philips' },
   { key: 'Approuvé' }
 ];
+
+const ADMIN_INTERNAL_DEFAULTS = {
+  expert: 'Expert IRM',
+  priority: 'Moyenne',
+  clinicalRelevance: 3,
+  scientistComments: '',
+  ipAlert: false,
+  estimatedBudget: '',
+  resourcesFte: '',
+  roadmapFit: 'Moyen',
+  fundingSource: 'R&D'
+};
+
+const ADMIN_EXPERTS = ['Expert IRM', 'Expert Écho', 'Expert Monitorage'];
+const ADMIN_PRIORITIES = ['Basse', 'Moyenne', 'Haute'];
+const ADMIN_ROADMAP_FITS = ['Excellent', 'Moyen', 'Hors-Sujet'];
+const ADMIN_FUNDING_SOURCES = ['R&D', 'Business Unit', 'Externe'];
+
+const getNextFunnelStatus = (status) => {
+  const currentIndex = FUNNEL_STEPS.findIndex(step => step.key === status);
+  if (currentIndex === -1 || currentIndex >= FUNNEL_STEPS.length - 1) return status;
+  return FUNNEL_STEPS[currentIndex + 1].key;
+};
 
 // Visual funnel timeline component for PI idea cards
 const FunnelTimeline = ({ currentStatus, lang }) => {
@@ -548,7 +623,7 @@ const mapSupabaseIdea = (item) => ({
   piHospital: item.pi_hospital,
   piEmail: item.pi_email,
   submittedAt: item.submitted_at,
-  feedback: item.feedback || '',
+  feedback: item.feedback_philips ?? item.feedback ?? '',
   attachments: item.attachments || [],
   userId: item.user_id
 });
@@ -587,6 +662,7 @@ export default function App() {
   const [editStatus, setEditStatus] = useState('');
   const [editFeedback, setEditFeedback] = useState('');
   const [editBusinessUnit, setEditBusinessUnit] = useState('');
+  const [adminInternalDataByIdea, setAdminInternalDataByIdea] = useState({});
 
   // PI submission form states
   const [newTitle, setNewTitle] = useState('');
@@ -613,6 +689,23 @@ export default function App() {
       setToast(null);
     }, 4500);
   }, []);
+
+  const getAdminInternalData = useCallback((ideaId) => ({
+    ...ADMIN_INTERNAL_DEFAULTS,
+    ...(adminInternalDataByIdea[ideaId] || {})
+  }), [adminInternalDataByIdea]);
+
+  const updateAdminInternalField = (field, value) => {
+    if (!selectedIdea) return;
+    setAdminInternalDataByIdea(prev => ({
+      ...prev,
+      [selectedIdea.id]: {
+        ...ADMIN_INTERNAL_DEFAULTS,
+        ...(prev[selectedIdea.id] || {}),
+        [field]: value
+      }
+    }));
+  };
 
   const fetchIdeasFromSupabase = useCallback(async () => {
     try {
@@ -939,7 +1032,7 @@ export default function App() {
             pi_hospital: newIdea.piHospital,
             pi_email: newIdea.piEmail,
             submitted_at: newIdea.submittedAt,
-            feedback: newIdea.feedback,
+            feedback_philips: newIdea.feedback,
             attachments: newIdea.attachments,
             user_id: user?.id
           }]);
@@ -965,52 +1058,22 @@ export default function App() {
     setTempAttachments([]);
   };
 
-  // Orchestrator Edit Handler
-  const handleUpdateIdea = async (e) => {
-    e.preventDefault();
+  const handleAdminDrawerSave = async (advanceFunnel = false) => {
     if (!selectedIdea) return;
 
-    if (!editTitle.trim()) {
-      showToast(t('updateTitleRequired'), "error");
-      return;
-    }
-
-    const isPIEditor = role === 'pi';
-    const updatedFields = {
-      title: editTitle,
-      problem: editProblem,
-      solution: editSolution,
-      modality: editModality,
-      ...(isPIEditor ? {} : {
-        status: editStatus,
-        feedback: editFeedback,
-        businessUnit: editBusinessUnit
-      })
-    };
+    const targetStatus = advanceFunnel ? getNextFunnelStatus(editStatus) : editStatus;
 
     if (supabase) {
       try {
-        const query = supabase
+        const { data, error } = await supabase
           .from('ideas')
-          .update(isPIEditor ? {
-            title: editTitle,
-            problem: editProblem,
-            solution: editSolution,
-            modality: editModality
-          } : {
-            title: editTitle,
-            problem: editProblem,
-            solution: editSolution,
-            modality: editModality,
-            status: editStatus,
-            feedback: editFeedback,
-            business_unit: editBusinessUnit
+          .update({
+            status: targetStatus,
+            feedback_philips: editFeedback
           })
           .eq('id', selectedIdea.id)
           .select('*')
           .single();
-
-        const { data, error } = await query;
 
         if (error) throw error;
         if (!data) throw new Error(t('updateError'));
@@ -1020,7 +1083,77 @@ export default function App() {
           idea.id === savedIdea.id ? savedIdea : idea
         )));
         setSelectedIdea(savedIdea);
-        showToast(isPIEditor ? t('ideaUpdated') : t('updateSaved'), "success");
+        setEditStatus(savedIdea.status);
+        setEditFeedback(savedIdea.feedback || '');
+        showToast(t('updateSaved'), "success");
+      } catch (err) {
+        console.error("Error updating admin fields in online service:", err);
+        showToast(err.message || t('updateError'), "error");
+        return;
+      }
+    } else {
+      const updatedFields = {
+        status: targetStatus,
+        feedback: editFeedback
+      };
+      setIdeas(prev => prev.map(idea => (
+        idea.id === selectedIdea.id ? { ...idea, ...updatedFields } : idea
+      )));
+      setSelectedIdea(prev => prev ? { ...prev, ...updatedFields } : prev);
+      setEditStatus(targetStatus);
+    }
+
+    setShowUpdateConfirmation(true);
+    setTimeout(() => {
+      setShowUpdateConfirmation(false);
+    }, 4000);
+  };
+
+  // Idea Edit Handler
+  const handleUpdateIdea = async (e) => {
+    e.preventDefault();
+    if (!selectedIdea) return;
+
+    if (role === 'orchestrator') {
+      await handleAdminDrawerSave(false);
+      return;
+    }
+
+    if (!editTitle.trim()) {
+      showToast(t('updateTitleRequired'), "error");
+      return;
+    }
+
+    const updatedFields = {
+      title: editTitle,
+      problem: editProblem,
+      solution: editSolution,
+      modality: editModality
+    };
+
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('ideas')
+          .update({
+            title: editTitle,
+            problem: editProblem,
+            solution: editSolution,
+            modality: editModality
+          })
+          .eq('id', selectedIdea.id)
+          .select('*')
+          .single();
+
+        if (error) throw error;
+        if (!data) throw new Error(t('updateError'));
+
+        const savedIdea = mapSupabaseIdea(data);
+        setIdeas(prev => prev.map(idea => (
+          idea.id === savedIdea.id ? savedIdea : idea
+        )));
+        setSelectedIdea(savedIdea);
+        showToast(t('ideaUpdated'), "success");
       } catch (err) {
         console.error("Error updating idea in online service:", err);
         showToast(err.message || t('updateError'), "error");
@@ -1499,6 +1632,9 @@ export default function App() {
         {/* ============================================== */}
         {role === 'pi' && (
           <div className="space-y-8 animate-fadeIn duration-500">
+            <div className="bg-amber-50 border-l-4 border-amber-400 p-4 text-amber-700 text-sm font-semibold leading-relaxed text-left">
+              ⚠️ Version Démo – Cet outil est un prototype en cours d'évaluation. Pour des raisons de confidentialité et de propriété intellectuelle, merci de ne saisir AUCUNE donnée réelle de patient, information nominative ou secret de recherche critique.
+            </div>
             
             <div className="bg-gradient-to-r from-philips-dark-blue to-philips-blue p-8 rounded-3xl text-white shadow-premium relative overflow-hidden">
               <div className="absolute right-0 bottom-0 top-0 opacity-10 flex items-center pr-10">
@@ -2128,6 +2264,18 @@ export default function App() {
                 <h3 className="font-extrabold text-base mt-1 line-clamp-1 text-white">
                   {selectedIdea.title}
                 </h3>
+                {role === 'orchestrator' && (
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
+                    <span className="inline-flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-slate-400" />
+                      {selectedIdea.piName}
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusConfig(editStatus || selectedIdea.status).bg}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${getStatusConfig(editStatus || selectedIdea.status).dot}`} />
+                      {statusLabel(editStatus || selectedIdea.status)}
+                    </span>
+                  </div>
+                )}
               </div>
               <button 
                 onClick={() => setSelectedIdea(null)}
@@ -2155,6 +2303,309 @@ export default function App() {
 
             {/* Scrollable Form */}
             <form onSubmit={handleUpdateIdea} className="flex-1 overflow-y-auto p-6 space-y-6 flex flex-col">
+              {role === 'orchestrator' ? (
+                <>
+                  <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden text-left shadow-sm">
+                    <div className="px-5 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          {t('internalWorkNotes')}
+                        </p>
+                        <h4 className="text-sm font-extrabold text-slate-900 mt-1">
+                          {t('caseManagement')}
+                        </h4>
+                      </div>
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black">
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Admin
+                      </span>
+                    </div>
+
+                    <div className="p-5 space-y-5 divide-y divide-slate-100">
+                      {editStatus === 'Soumis' && (
+                        <section className="space-y-4">
+                          <div>
+                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                              {t('triageNotes')}
+                            </h5>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {t('triageDescription')}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('assignExpert')}
+                              </label>
+                              <select
+                                value={getAdminInternalData(selectedIdea.id).expert}
+                                onChange={(e) => updateAdminInternalField('expert', e.target.value)}
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                              >
+                                {ADMIN_EXPERTS.map(expert => (
+                                  <option key={expert} value={expert}>{expert}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('priority')}
+                              </span>
+                              <div className="grid grid-cols-3 gap-2">
+                                {ADMIN_PRIORITIES.map(priority => (
+                                  <label
+                                    key={priority}
+                                    className={`px-2.5 py-2 rounded-xl border text-xs font-bold cursor-pointer text-center transition ${
+                                      getAdminInternalData(selectedIdea.id).priority === priority
+                                        ? 'border-philips-blue bg-blue-50 text-philips-blue'
+                                        : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
+                                    }`}
+                                  >
+                                    <input
+                                      type="radio"
+                                      name="admin-priority"
+                                      value={priority}
+                                      checked={getAdminInternalData(selectedIdea.id).priority === priority}
+                                      onChange={(e) => updateAdminInternalField('priority', e.target.value)}
+                                      className="sr-only"
+                                    />
+                                    {priority}
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </section>
+                      )}
+
+                      {editStatus === 'En évaluation' && (
+                        <section className="space-y-4 pt-5 first:pt-0">
+                          <div>
+                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                              {t('scientificEvaluation')}
+                            </h5>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {t('scientificEvaluationDescription')}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                {t('clinicalRelevance')}
+                              </label>
+                              <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full text-xs font-black">
+                                {getAdminInternalData(selectedIdea.id).clinicalRelevance}/5
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="1"
+                              max="5"
+                              step="1"
+                              value={getAdminInternalData(selectedIdea.id).clinicalRelevance}
+                              onChange={(e) => updateAdminInternalField('clinicalRelevance', Number(e.target.value))}
+                              className="w-full accent-philips-blue"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                              {t('clinicalScientistComments')}
+                            </label>
+                            <textarea
+                              rows={4}
+                              value={getAdminInternalData(selectedIdea.id).scientistComments}
+                              onChange={(e) => updateAdminInternalField('scientistComments', e.target.value)}
+                              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs leading-relaxed text-slate-700 focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none"
+                            />
+                          </div>
+                          <label className="flex items-center justify-between gap-4 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer">
+                            <span className="text-xs font-bold text-slate-700">
+                              {t('ipAlert')}
+                            </span>
+                            <span className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                              getAdminInternalData(selectedIdea.id).ipAlert ? 'bg-amber-500' : 'bg-slate-300'
+                            }`}>
+                              <input
+                                type="checkbox"
+                                checked={getAdminInternalData(selectedIdea.id).ipAlert}
+                                onChange={(e) => updateAdminInternalField('ipAlert', e.target.checked)}
+                                className="sr-only"
+                              />
+                              <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                getAdminInternalData(selectedIdea.id).ipAlert ? 'translate-x-5' : 'translate-x-0.5'
+                              }`} />
+                            </span>
+                          </label>
+                        </section>
+                      )}
+
+                      {editStatus === 'Chiffrage Ressources' && (
+                        <section className="space-y-4 pt-5 first:pt-0">
+                          <div>
+                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                              {t('resourceSizing')}
+                            </h5>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {t('resourceSizingDescription')}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('estimatedBudget')}
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={getAdminInternalData(selectedIdea.id).estimatedBudget}
+                                onChange={(e) => updateAdminInternalField('estimatedBudget', e.target.value)}
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('resourcesFte')}
+                              </label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.1"
+                                value={getAdminInternalData(selectedIdea.id).resourcesFte}
+                                onChange={(e) => updateAdminInternalField('resourcesFte', e.target.value)}
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                              />
+                            </div>
+                          </div>
+                        </section>
+                      )}
+
+                      {editStatus === 'Arbitrage Philips' && (
+                        <section className="space-y-4 pt-5 first:pt-0">
+                          <div>
+                            <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                              {t('arbitration')}
+                            </h5>
+                            <p className="text-xs text-slate-400 mt-1">
+                              {t('arbitrationDescription')}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('roadmapFit')}
+                              </label>
+                              <select
+                                value={getAdminInternalData(selectedIdea.id).roadmapFit}
+                                onChange={(e) => updateAdminInternalField('roadmapFit', e.target.value)}
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                              >
+                                {ADMIN_ROADMAP_FITS.map(fit => (
+                                  <option key={fit} value={fit}>{fit}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">
+                                {t('fundingSource')}
+                              </label>
+                              <select
+                                value={getAdminInternalData(selectedIdea.id).fundingSource}
+                                onChange={(e) => updateAdminInternalField('fundingSource', e.target.value)}
+                                className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-philips-blue/15"
+                              >
+                                {ADMIN_FUNDING_SOURCES.map(source => (
+                                  <option key={source} value={source}>{source}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </section>
+                      )}
+
+                      {(editStatus === 'Approuvé' || editStatus === 'Archivé') && (
+                        <section className="space-y-2">
+                          <h5 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                            {t('finalizedCase')}
+                          </h5>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            {t('finalizedCaseBody')}
+                          </p>
+                        </section>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5 text-left shadow-sm">
+                    <div className="flex items-start gap-3 pb-4 border-b border-slate-100">
+                      <div className="p-2 bg-sky-50 rounded-xl text-sky-700">
+                        <MessageSquare className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-extrabold text-slate-900">
+                          {t('officialPiMessage')}
+                        </h4>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {t('officialPiMessageHelp')}
+                        </p>
+                      </div>
+                    </div>
+                    <textarea
+                      rows={5}
+                      placeholder={t('feedbackPlaceholder')}
+                      value={editFeedback}
+                      onChange={(e) => setEditFeedback(e.target.value)}
+                      className="mt-4 w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-philips-blue/20 focus:border-philips-blue transition bg-white resize-none text-slate-800"
+                    />
+                    <p className="mt-2 text-xs font-bold text-amber-700">
+                      {t('officialPiWarning')}
+                    </p>
+                  </div>
+
+                  {selectedIdea.attachments && selectedIdea.attachments.length > 0 && (
+                    <div className="text-left bg-slate-50 border border-slate-200/50 p-4 rounded-xl">
+                      <span className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{t('doctorAttachments')}</span>
+                      <div className="space-y-1.5">
+                        {selectedIdea.attachments.map((file, i) => (
+                          <button
+                            key={i}
+                            type="button"
+                            onClick={(e) => handleDownloadAttachment(e, file)}
+                            className="w-full flex items-center justify-between text-xs text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 p-2.5 rounded-lg transition hover:border-slate-300 font-semibold cursor-pointer"
+                          >
+                            <span className="flex items-center gap-2 truncate max-w-[85%]">
+                              <FileText className="w-4 h-4 text-slate-400 shrink-0" />
+                              <span className="truncate">{file.name}</span>
+                              <span className="text-[10px] text-slate-400 font-normal shrink-0">({file.size})</span>
+                            </span>
+                            <Download className="w-4 h-4 text-slate-500 shrink-0 hover:text-philips-blue" />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 mt-auto border-t border-slate-100 text-left sticky bottom-0 bg-white">
+                    <button
+                      type="button"
+                      onClick={() => handleAdminDrawerSave(false)}
+                      className="flex-1 bg-philips-blue hover:bg-philips-accent text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-philips-blue/15 hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      {t('saveInternalData')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleAdminDrawerSave(true)}
+                      disabled={getNextFunnelStatus(editStatus) === editStatus}
+                      className="flex-1 bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-slate-900/10 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                      {t('advanceFunnel')}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
               
               {/* Doctor Profile Info */}
               <div className="bg-slate-50 border border-slate-200/50 p-4 rounded-xl flex items-center gap-4 text-left">
@@ -2347,6 +2798,8 @@ export default function App() {
                 </button>
               </div>
 
+                </>
+              )}
             </form>
 
           </div>
